@@ -4,7 +4,6 @@ const nextConfig = {
     pageExtensions: ['page.tsx', 'page.ts'],
     swcMinify: true,
     reactStrictMode: true,
-    output: 'standalone',
 };
 
 module.exports = nextConfig;
