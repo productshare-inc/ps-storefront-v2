@@ -1,7 +1,7 @@
 /* eslint-disable */
 
 import { AllTypesProps, ReturnTypes, Ops } from './const';
-export const HOST = 'http://localhost:3000/shop-api';
+export const HOST = process.env.NEXT_PUBLIC_HOST+'/shop-api';
 
 export const HEADERS = {};
 export const apiSubscription = (options: chainOptions) => (query: string) => {

@@ -29,6 +29,7 @@ export function middleware(request: NextRequest) {
         const channel = split[0];
         const locale = split[1];
         const replaced = url.href.replace(`/${channel}`, ``);
+        console.log('redirect', channel, locale, replaced);
         const response = NextResponse.redirect(new URL(replaced), { status: 308 });
 
         if (channel === DEFAULT_CHANNEL_SLUG) {

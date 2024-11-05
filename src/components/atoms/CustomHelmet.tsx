@@ -21,7 +21,7 @@ export const CustomHelmet: React.FC<{
         title = pageTitle.slice(0, 60 - 3) + '...';
         // console.log(`title of ${asPath} is too long`);
     }
-    const u = new URL((process.env.NEXT_PUBLIC_DOMAIN || 'https://shop.aexol.com') + asPath);
+    const u = new URL((process.env.NEXT_PUBLIC_DOMAIN || 'https://shop.productshare.net') + asPath);
     const canonicalUrl = u.origin + u.pathname;
 
     let metaDescription = product?.description || collection?.description || 'Demo store made by Aexol';
@@ -49,8 +49,8 @@ export const CustomHelmet: React.FC<{
         ],
         faviconUrl: `/favicon.ico`,
         logo: `/images/aexol_full_logo.png`,
-        facebook: 'https://www.facebook.com/Aexol',
-        twitter: 'https://twitter.com/aexol',
+        facebook: 'https://www.facebook.com/iproductshare',
+        twitter: 'https://twitter.com/iproductshare',
         image: product?.featuredAsset?.preview || collection?.featuredAsset?.preview || `/images/aexol_full_logo.png`,
     };
     // !seo.keywords.some(keyword => title.includes(keyword)) && console.log(`no keyword in title of ${seo.pageUrl}`);
