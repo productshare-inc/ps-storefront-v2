@@ -1,4 +1,5 @@
 import { LogoAexol } from '@/src/assets';
+import { ShareCashLogo } from '@/src/assets';
 import { ContentContainer } from '@/src/components/atoms';
 import { UserMenu } from '@/src/components/molecules/UserMenu';
 
@@ -80,7 +81,7 @@ export const Navigation: React.FC<NavigationProps> = ({ navigation, categories, 
                     <Stack itemsCenter justifyBetween gap="5rem" w100>
                         <Stack itemsCenter>
                             <Link ariaLabel={'Home'} href={'/'}>
-                                <LogoAexol width={60} />
+                                <ShareCashLogo width={300} />
                             </Link>
                         </Stack>
                         <AnimatePresence>
@@ -91,7 +92,8 @@ export const Navigation: React.FC<NavigationProps> = ({ navigation, categories, 
                                     animate={{ opacity: 1 }}
                                     exit={{ opacity: 0 }}
                                     transition={{ duration: 0.2 }}
-                                    ref={searchRef}>
+                                    ref={searchRef}
+                                >
                                     <NavigationSearch {...navigationSearch} />
                                 </DesktopNavigationContainer>
                             ) : (
@@ -102,7 +104,8 @@ export const Navigation: React.FC<NavigationProps> = ({ navigation, categories, 
                             <IconButton
                                 aria-label="Search products"
                                 onClick={navigationSearch.toggleSearch}
-                                ref={iconRef}>
+                                ref={iconRef}
+                            >
                                 <SearchIcon />
                             </IconButton>
                             <Picker changeModal={changeModal} />
