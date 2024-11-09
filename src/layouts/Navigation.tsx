@@ -75,7 +75,7 @@ export const Navigation: React.FC<NavigationProps> = ({ navigation, categories, 
 
     return (
         <>
-        {process.env.NEXT_PUBLIC_SHOW_TOP ? <AnnouncementBar entries={entries} secondsBetween={5} /> : null}
+        {process.env.NEXT_PUBLIC_SHOW_TOP == "true" ? <AnnouncementBar entries={entries} secondsBetween={5} /> : null}
             <StickyContainer>
                 <ContentContainer>
                     <Stack itemsCenter justifyBetween gap="5rem" w100>
