@@ -16,7 +16,7 @@ import { CollectionTileType, NavigationType } from '@/src/graphql/selectors';
 import { RootNode } from '@/src/util/arrayToTree';
 import { DesktopNavigation } from '@/src/components/organisms/DesktopNavigation';
 import { SearchIcon } from 'lucide-react';
-import { IconButton } from '@/src/components/molecules/Button';
+import { Button, IconButton } from '@/src/components/molecules/Button';
 import { AnnouncementBar } from '@/src/components/organisms/AnnouncementBar';
 import { CategoryBar } from './CategoryBar';
 import { NavigationSearch } from '@/src/components/organisms/NavgationSearch';
@@ -25,6 +25,8 @@ import { useNavigationSearch } from '@/src/components/organisms/NavgationSearch/
 import { useEffect, useRef } from 'react';
 import { Picker } from '@/src/components/organisms/Picker';
 import { useTranslation } from 'next-i18next';
+import { usePrivy } from '@privy-io/react-auth';
+import router from 'next/router';
 
 interface NavigationProps {
     navigation: RootNode<NavigationType> | null;
@@ -44,6 +46,17 @@ export const Navigation: React.FC<NavigationProps> = ({ navigation, categories, 
     const searchRef = useRef<HTMLDivElement>(null);
     const searchMobileRef = useRef<HTMLDivElement>(null);
     const iconRef = useRef<HTMLButtonElement>(null);
+
+    const { ready,
+        authenticated,
+        user,
+        logout } = usePrivy();
+
+    useEffect(() => {
+        if (ready && !authenticated) {
+            router.push("/");
+        }
+    }, [ready, authenticated, router]);
 
     const handleOutsideClick = (event: MouseEvent) => {
         if (
@@ -75,7 +88,7 @@ export const Navigation: React.FC<NavigationProps> = ({ navigation, categories, 
 
     return (
         <>
-        {process.env.NEXT_PUBLIC_SHOW_TOP ? <AnnouncementBar entries={entries} secondsBetween={5} /> : null}
+            {process.env.NEXT_PUBLIC_SHOW_TOP ? <AnnouncementBar entries={entries} secondsBetween={5} /> : null}
             <StickyContainer>
                 <ContentContainer>
                     <Stack itemsCenter justifyBetween gap="5rem" w100>
@@ -111,6 +124,10 @@ export const Navigation: React.FC<NavigationProps> = ({ navigation, categories, 
                             <Picker changeModal={changeModal} />
                             <UserMenu isLogged={isLogged} />
                             <CartDrawer activeOrder={cart} />
+                            {ready && authenticated ? (
+                                <Button onClick={logout}>Logout</Button>
+                            ) : null
+                            }
                         </Stack>
                     </Stack>
                 </ContentContainer>

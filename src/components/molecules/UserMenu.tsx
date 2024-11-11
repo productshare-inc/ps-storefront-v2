@@ -11,7 +11,7 @@ export const UserMenu: React.FC<{ isLogged: boolean }> = ({ isLogged }) => {
 
     const router = useRouter();
     const { login } = useLogin({
-      onComplete: () => router.push(""),
+      onComplete: () => router.push("/customer/manage"),
     });
     
     return (
