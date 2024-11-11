@@ -24,6 +24,8 @@
         "@graphql-typed-document-node/core": "^3.2.0",
         "@hookform/resolvers": "^3.3.2",
         "@next/font": "^14.0.3",
+        "@privy-io/react-auth": "^1.93.0",
+        "@privy-io/server-auth": "^1.16.1",
         "@stripe/react-stripe-js": "^2.4.0",
         "@stripe/stripe-js": "^2.2.0",
         "country-flag-icons": "^1.5.9",

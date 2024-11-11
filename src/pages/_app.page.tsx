@@ -11,6 +11,7 @@ import { CheckoutProvider } from '@/src/state/checkout';
 import { ProductProvider } from '@/src/state/product';
 import { CollectionProvider } from '@/src/state/collection';
 import { ChannelsProvider } from '../state/channels';
+import { PrivyProvider } from '@privy-io/react-auth';
 
 const nunito = Nunito_Sans({ subsets: ['latin'], variable: '--nunito-font' });
 
@@ -41,7 +42,15 @@ const App = ({ Component, pageProps }: AppProps) => {
                                     page: 'page' in pageProps ? pageProps.page : undefined,
                                     sort: 'sort' in pageProps ? pageProps.sort : undefined,
                                 }}>
-                                <Component {...pageProps} />
+                                <PrivyProvider
+                                    appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID || ''}
+                                    config={{
+                                        embeddedWallets: {
+                                            createOnLogin: 'all-users',
+                                        },
+                                    }}>
+                                    <Component {...pageProps} />
+                                </PrivyProvider>
                             </CollectionProvider>
                         </ProductProvider>
                     </CartProvider>
