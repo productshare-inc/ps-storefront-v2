@@ -9,6 +9,7 @@ import styled from '@emotion/styled';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
+import {usePrivy} from '@privy-io/react-auth';
 import React from 'react';
 
 const routes = [
@@ -26,8 +27,10 @@ export const CustomerNavigation: React.FC = () => {
     const { t } = useTranslation('customer');
     const { pathname } = useRouter();
     const push = usePush();
+    const {logout} = usePrivy();
     const onClick = async () => {
         await storefrontApiMutation(ctx)({ logout: { success: true } });
+        await logout()
         push('/');
     };
 
