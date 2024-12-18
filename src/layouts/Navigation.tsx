@@ -1,7 +1,7 @@
 import { LogoAexol } from '@/src/assets';
 import { ContentContainer } from '@/src/components/atoms';
 import { UserMenu } from '@/src/components/molecules/UserMenu';
-
+import { ShareCashLogo } from '@/src/assets';
 import { Stack } from '@/src/components/atoms/Stack';
 import styled from '@emotion/styled';
 import { Link } from '@/src/components/atoms/Link';
@@ -74,13 +74,13 @@ export const Navigation: React.FC<NavigationProps> = ({ navigation, categories, 
 
     return (
         <>
-            <AnnouncementBar entries={entries} secondsBetween={5} />
+            {process.env.NEXT_PUBLIC_SHOW_TOP == "true" ? <AnnouncementBar entries={entries} secondsBetween={5} /> : null}
             <StickyContainer>
                 <ContentContainer>
                     <Stack itemsCenter justifyBetween gap="5rem" w100>
                         <Stack itemsCenter>
                             <Link ariaLabel={'Home'} href={'/'}>
-                                <LogoAexol width={60} />
+                                <ShareCashLogo width={300} />
                             </Link>
                         </Stack>
                         <AnimatePresence>
