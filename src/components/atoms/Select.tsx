@@ -19,7 +19,7 @@ export function Select<T extends string | number>({
         <Main>
             <select
                 value={value || ''}
-                placeholder={t('select-category')}
+                // placeholder={t('select-category')}
                 onChange={e => {
                     setValue(e.target.value as T);
                 }}>
