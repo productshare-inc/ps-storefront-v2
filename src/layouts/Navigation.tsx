@@ -1,5 +1,4 @@
 import { LogoAexol } from '@/src/assets';
-import { ShareCashLogo } from '@/src/assets';
 import { ContentContainer } from '@/src/components/atoms';
 import { UserMenu } from '@/src/components/molecules/UserMenu';
 
@@ -75,13 +74,13 @@ export const Navigation: React.FC<NavigationProps> = ({ navigation, categories, 
 
     return (
         <>
-        {process.env.NEXT_PUBLIC_SHOW_TOP == "true" ? <AnnouncementBar entries={entries} secondsBetween={5} /> : null}
+            <AnnouncementBar entries={entries} secondsBetween={5} />
             <StickyContainer>
                 <ContentContainer>
                     <Stack itemsCenter justifyBetween gap="5rem" w100>
                         <Stack itemsCenter>
                             <Link ariaLabel={'Home'} href={'/'}>
-                                <ShareCashLogo width={300} />
+                                <LogoAexol width={60} />
                             </Link>
                         </Stack>
                         <AnimatePresence>
@@ -92,8 +91,7 @@ export const Navigation: React.FC<NavigationProps> = ({ navigation, categories, 
                                     animate={{ opacity: 1 }}
                                     exit={{ opacity: 0 }}
                                     transition={{ duration: 0.2 }}
-                                    ref={searchRef}
-                                >
+                                    ref={searchRef}>
                                     <NavigationSearch {...navigationSearch} />
                                 </DesktopNavigationContainer>
                             ) : (
@@ -104,8 +102,7 @@ export const Navigation: React.FC<NavigationProps> = ({ navigation, categories, 
                             <IconButton
                                 aria-label="Search products"
                                 onClick={navigationSearch.toggleSearch}
-                                ref={iconRef}
-                            >
+                                ref={iconRef}>
                                 <SearchIcon />
                             </IconButton>
                             <Picker changeModal={changeModal} />

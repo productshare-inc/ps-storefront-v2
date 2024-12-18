@@ -238,7 +238,7 @@ export const AllTypesProps: Record<string,any> = {
 		}
 	},
 	AuthenticationInput:{
-		native:"NativeAuthInput"
+		privy:"PrivyAuthInput"
 	},
 	RegisterCustomerInput:{
 
@@ -435,7 +435,7 @@ export const AllTypesProps: Record<string,any> = {
 		slug:"SortOrder",
 		description:"SortOrder"
 	},
-	NativeAuthInput:{
+	PrivyAuthInput:{
 
 	}
 }
