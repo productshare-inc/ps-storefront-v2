@@ -463,7 +463,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({ availableCountries, active
                                         {availableCountries && (
                                             <CountrySelect
                                                 {...register('billing.countryCode')}
-                                                placeholder={t('orderForm.placeholders.countryCode')}
+                                                // placeholder={t('orderForm.placeholders.countryCode')}
                                                 label={t('orderForm.countryCode')}
                                                 defaultValue={countryCode}
                                                 options={availableCountries}

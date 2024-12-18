@@ -37,7 +37,7 @@ interface NavigationProps {
 }
 
 export const Navigation: React.FC<NavigationProps> = ({ navigation, categories, changeModal }) => {
-    const { t } = useTranslation('common');
+    const { t } = useTranslation();
     const { isLogged, cart } = useCart();
     const navigationSearch = useNavigationSearch();
     const searchRef = useRef<HTMLDivElement>(null);

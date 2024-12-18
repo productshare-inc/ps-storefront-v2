@@ -36,7 +36,7 @@ export const Tooltip: React.FC<{
                             transition={{ duration: 0.1 }}
                             {...layerProps}>
                             <TP size="1.25rem">{text}</TP>
-                            <StyledArrow {...arrowProps} size={6} />
+                            <StyledArrow onPointerEnterCapture={undefined} onPointerLeaveCapture={undefined} {...arrowProps} size={6} />
                         </StyledTooltip>
                     )}
                 </AnimatePresence>,
