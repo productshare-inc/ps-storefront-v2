@@ -309,7 +309,9 @@ export const AllTypesProps: Record<string,any> = {
 		firstName:"StringOperators",
 		lastName:"StringOperators",
 		phoneNumber:"StringOperators",
-		emailAddress:"StringOperators"
+		emailAddress:"StringOperators",
+		linkedAccounts:"StringOperators",
+		privy_id:"StringOperators"
 	},
 	CustomerSortParameter:{
 		id:"SortOrder",
@@ -319,7 +321,9 @@ export const AllTypesProps: Record<string,any> = {
 		firstName:"SortOrder",
 		lastName:"SortOrder",
 		phoneNumber:"SortOrder",
-		emailAddress:"SortOrder"
+		emailAddress:"SortOrder",
+		linkedAccounts:"SortOrder",
+		privy_id:"SortOrder"
 	},
 	OrderFilterParameter:{
 		id:"IDOperators",
@@ -1017,7 +1021,7 @@ export const ReturnTypes: Record<string,any> = {
 		addresses:"Address",
 		orders:"OrderList",
 		user:"User",
-		customFields:"JSON"
+		customFields:"CustomerCustomFields"
 	},
 	CustomerList:{
 		items:"Customer",
@@ -1758,6 +1762,10 @@ export const ReturnTypes: Record<string,any> = {
 	ActiveOrderResult:{
 		"...on Order":"Order",
 		"...on NoActiveOrderError":"NoActiveOrderError"
+	},
+	CustomerCustomFields:{
+		linkedAccounts:"String",
+		privy_id:"String"
 	}
 }
 
