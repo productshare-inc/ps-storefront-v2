@@ -26,6 +26,7 @@ const App = ({ Component, pageProps }: AppProps) => {
                     theme: 'light',
                     accentColor: '#676FFF',
                 },
+                loginMethods: ["twitter", "wallet", "farcaster", "email" ],
                 embeddedWallets: {
                     createOnLogin: 'users-without-wallets',
                 },
