@@ -24,10 +24,10 @@ export const VENDURE_HOST = `${process.env.NEXT_PUBLIC_HOST ?? 'https://staging.
 
 const apiFetchVendure =
     (options: fetchOptions) =>
-    (query: string, variables: Record<string, unknown> = {}) => {
-        const fetchOptions = options[1] || {};
-        if (fetchOptions.method && fetchOptions.method === 'GET') {
-            return fetch(`${options[0]}?query=${encodeURIComponent(query)}`, fetchOptions)
+        (query: string, variables: Record<string, unknown> = {}) => {
+            const fetchOptions = options[1] || {};
+            if (fetchOptions.method && fetchOptions.method === 'GET') {
+                return fetch(`${options[0]}?query=${encodeURIComponent(query)}`, fetchOptions)
                 .then(handleFetchResponse)
                 .then((response: GraphQLResponse) => {
                     if (response.errors) {
@@ -35,22 +35,27 @@ const apiFetchVendure =
                     }
                     return response.data;
                 });
-        }
-        const additionalHeaders: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-        return fetch(`${options[0]}`, {
-            body: JSON.stringify({ query, variables }),
-            method: 'POST',
-            credentials: 'include',
-            headers: {
-                'Content-Type': 'application/json',
-                ...additionalHeaders,
-            },
-            ...fetchOptions,
-        })
+            }
+            
+            const additionalHeaders: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+            return fetch(`${options[0]}`, {
+                body: JSON.stringify({ query, variables }),
+                method: 'POST',
+                credentials: 'include', // Ensure cookies are included
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...additionalHeaders,
+                },
+                ...fetchOptions,
+            })
             .then(r => {
                 const authToken = r.headers.get('vendure-auth-token');
                 if (authToken != null) {
                     token = authToken;
+                    if (typeof window !== 'undefined') {
+                        // Persist the token for subsequent requests
+                        window.localStorage.setItem('token', token);
+                    }
                 }
                 return handleFetchResponse(r);
             })
@@ -60,7 +65,7 @@ const apiFetchVendure =
                 }
                 return response.data;
             });
-    };
+        };
 
 export const VendureChain = (...options: chainOptions) => Thunder(apiFetchVendure(options));
 
@@ -126,7 +131,7 @@ export const SSRMutation = (context: GetServerSidePropsContext) => {
         session: context.req.cookies['session'],
         'session.sig': context.req.cookies['session.sig'],
     };
-
+   
     const ctx = getContext(context);
     const properChannel = ctx?.params?.channel as string;
     const locale = ctx?.params?.locale as string;
