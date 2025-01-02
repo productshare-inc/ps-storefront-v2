@@ -1,7 +1,7 @@
 /* eslint-disable */
 
 import { AllTypesProps, ReturnTypes, Ops } from './const';
-export const HOST = "http://localhost:3000/shop-api"
+export const HOST = "https://staging.productshare.net/shop-api"
 
 
 export const HEADERS = {}
