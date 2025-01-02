@@ -13,12 +13,12 @@ module.exports = {
     // },
     i18n: {
         defaultLocale: 'en',
-        locales: ['en', 'fr', 'de'],
+        locales: ['en', 'fr'],
         returnObjects: true,
         fallbackLng: 'en',
-        localePath: typeof window === 'undefined' ? require('path').resolve('./public/locales') : '/locales'
     },
-    react: { useSuspense: false },
+    localePath: typeof window === 'undefined' ? require('path').resolve('./public/locales') : '/locales',
+
     /** To avoid issues when deploying to some paas (vercel...) */
 
 
