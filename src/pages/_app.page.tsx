@@ -12,7 +12,7 @@ import { ProductProvider } from '@/src/state/product';
 import { CollectionProvider } from '@/src/state/collection';
 import { ChannelsProvider } from '../state/channels';
 import { PrivyProvider } from '@privy-io/react-auth';
-
+import "@/globals.css";
 const nunito = Nunito_Sans({ subsets: ['latin'], variable: '--nunito-font' });
 
 const App = ({ Component, pageProps }: AppProps) => {

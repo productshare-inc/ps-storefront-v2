@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import styled from '@emotion/styled';
 import { CustomHelmet } from '@/src/components';
 import { Navigation } from '@/src/layouts/Navigation';
 import { CollectionTileType, NavigationType } from '@/src/graphql/selectors';
@@ -26,22 +25,16 @@ interface CheckoutLayoutProps {
     children: React.ReactNode;
 }
 
-const MainStack = styled.main`
-    min-height: 100vh;
-    width: 100%;
-    background: ${p => p.theme.background.main};
-`;
-
 export const Layout: React.FC<LayoutProps> = ({ pageTitle, children, categories, navigation }) => {
     const { fetchActiveOrder } = useCart();
     const { product, variant } = useProduct();
     const { collection } = useCollection();
     const { channel } = useChannels();
-
+    
     const [changeModal, setChangeModal] = useState<
         { modal: boolean; channel: string; locale: string; country_name: string } | undefined
     >(undefined);
-
+    
     useEffect(() => {
         fetchActiveOrder();
         const getCountry = async () => {
@@ -61,14 +54,14 @@ export const Layout: React.FC<LayoutProps> = ({ pageTitle, children, categories,
                     country_name: data.country_name,
                 });
             } catch (error) {
-                console.log(error);
+                console.error(error);
             }
         };
         getCountry();
     }, []);
-
+    
     return (
-        <MainStack>
+        <main className="min-h-screen w-full bg-gradient-to-br from-gray-50 to-gray-100">
             <CustomHelmet
                 pageTitle={pageTitle ? `${pageTitle} | ${siteTitle}` : siteTitle}
                 product={product}
@@ -80,17 +73,17 @@ export const Layout: React.FC<LayoutProps> = ({ pageTitle, children, categories,
                 {children}
             </Stack>
             <Footer navigation={navigation} />
-        </MainStack>
+        </main>
     );
 };
 
 export const CheckoutLayout: React.FC<CheckoutLayoutProps> = ({ pageTitle, children }) => {
     return (
-        <MainStack>
+        <main className="min-h-screen w-full bg-background-main">
             <CustomHelmet pageTitle={pageTitle ? `${pageTitle} | ${siteTitle}` : siteTitle} />
             <Stack w100 itemsCenter column>
                 {children}
             </Stack>
-        </MainStack>
+        </main>
     );
 };
