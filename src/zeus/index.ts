@@ -156,82 +156,66 @@ export const InternalsBuildQuery = ({
   return ibb;
 };
 
-type UnionOverrideKeys<T, U> = Omit<T, keyof U> & U;
-
 export const Thunder =
-  <SCLR extends ScalarDefinition>(fn: FetchFunction, thunderGraphQLOptions?: ThunderGraphQLOptions<SCLR>) =>
-  <O extends keyof typeof Ops, OVERRIDESCLR extends SCLR, R extends keyof ValueTypes = GenericOperation<O>>(
+  (fn: FetchFunction) =>
+  <O extends keyof typeof Ops, SCLR extends ScalarDefinition, R extends keyof ValueTypes = GenericOperation<O>>(
     operation: O,
-    graphqlOptions?: ThunderGraphQLOptions<OVERRIDESCLR>,
+    graphqlOptions?: ThunderGraphQLOptions<SCLR>,
   ) =>
   <Z extends ValueTypes[R]>(
-    o: Z & {
-      [P in keyof Z]: P extends keyof ValueTypes[R] ? Z[P] : never;
-    },
+    o: (Z & ValueTypes[R]) | ValueTypes[R],
     ops?: OperationOptions & { variables?: Record<string, unknown> },
-  ) => {
-    const options = {
-      ...thunderGraphQLOptions,
-      ...graphqlOptions,
-    };
-    return fn(
+  ) =>
+    fn(
       Zeus(operation, o, {
         operationOptions: ops,
-        scalars: options?.scalars,
+        scalars: graphqlOptions?.scalars,
       }),
       ops?.variables,
     ).then((data) => {
-      if (options?.scalars) {
+      if (graphqlOptions?.scalars) {
         return decodeScalarsInResponse({
           response: data,
           initialOp: operation,
           initialZeusQuery: o as VType,
           returns: ReturnTypes,
-          scalars: options.scalars,
+          scalars: graphqlOptions.scalars,
           ops: Ops,
         });
       }
       return data;
-    }) as Promise<InputType<GraphQLTypes[R], Z, UnionOverrideKeys<SCLR, OVERRIDESCLR>>>;
-  };
+    }) as Promise<InputType<GraphQLTypes[R], Z, SCLR>>;
 
 export const Chain = (...options: chainOptions) => Thunder(apiFetch(options));
 
 export const SubscriptionThunder =
-  <SCLR extends ScalarDefinition>(fn: SubscriptionFunction, thunderGraphQLOptions?: ThunderGraphQLOptions<SCLR>) =>
-  <O extends keyof typeof Ops, OVERRIDESCLR extends SCLR, R extends keyof ValueTypes = GenericOperation<O>>(
+  (fn: SubscriptionFunction) =>
+  <O extends keyof typeof Ops, SCLR extends ScalarDefinition, R extends keyof ValueTypes = GenericOperation<O>>(
     operation: O,
-    graphqlOptions?: ThunderGraphQLOptions<OVERRIDESCLR>,
+    graphqlOptions?: ThunderGraphQLOptions<SCLR>,
   ) =>
   <Z extends ValueTypes[R]>(
-    o: Z & {
-      [P in keyof Z]: P extends keyof ValueTypes[R] ? Z[P] : never;
-    },
+    o: (Z & ValueTypes[R]) | ValueTypes[R],
     ops?: OperationOptions & { variables?: ExtractVariables<Z> },
   ) => {
-    const options = {
-      ...thunderGraphQLOptions,
-      ...graphqlOptions,
-    };
-    type CombinedSCLR = UnionOverrideKeys<SCLR, OVERRIDESCLR>;
     const returnedFunction = fn(
       Zeus(operation, o, {
         operationOptions: ops,
-        scalars: options?.scalars,
+        scalars: graphqlOptions?.scalars,
       }),
-    ) as SubscriptionToGraphQL<Z, GraphQLTypes[R], CombinedSCLR>;
-    if (returnedFunction?.on && options?.scalars) {
+    ) as SubscriptionToGraphQL<Z, GraphQLTypes[R], SCLR>;
+    if (returnedFunction?.on && graphqlOptions?.scalars) {
       const wrapped = returnedFunction.on;
-      returnedFunction.on = (fnToCall: (args: InputType<GraphQLTypes[R], Z, CombinedSCLR>) => void) =>
-        wrapped((data: InputType<GraphQLTypes[R], Z, CombinedSCLR>) => {
-          if (options?.scalars) {
+      returnedFunction.on = (fnToCall: (args: InputType<GraphQLTypes[R], Z, SCLR>) => void) =>
+        wrapped((data: InputType<GraphQLTypes[R], Z, SCLR>) => {
+          if (graphqlOptions?.scalars) {
             return fnToCall(
               decodeScalarsInResponse({
                 response: data,
                 initialOp: operation,
                 initialZeusQuery: o as VType,
                 returns: ReturnTypes,
-                scalars: options.scalars,
+                scalars: graphqlOptions.scalars,
                 ops: Ops,
               }),
             );
@@ -249,7 +233,7 @@ export const Zeus = <
   R extends keyof ValueTypes = GenericOperation<O>,
 >(
   operation: O,
-  o: Z,
+  o: (Z & ValueTypes[R]) | ValueTypes[R],
   ops?: {
     operationOptions?: OperationOptions;
     scalars?: ScalarDefinition;
@@ -767,11 +751,7 @@ export type ScalarResolver = {
   decode?: (s: unknown) => unknown;
 };
 
-export type SelectionFunction<V> = <Z extends V>(
-  t: Z & {
-    [P in keyof Z]: P extends keyof V ? Z[P] : never;
-  },
-) => Z;
+export type SelectionFunction<V> = <T>(t: T | V) => T;
 
 type BuiltInVariableTypes = {
   ['String']: string;
@@ -833,18 +813,11 @@ export type Variable<T extends GraphQLVariableType, Name extends string> = {
   ' __zeus_type': T;
 };
 
-export type ExtractVariablesDeep<Query> = Query extends Variable<infer VType, infer VName>
-  ? { [key in VName]: GetVariableType<VType> }
-  : Query extends string | number | boolean | Array<string | number | boolean>
-  ? // eslint-disable-next-line @typescript-eslint/ban-types
-    {}
-  : UnionToIntersection<{ [K in keyof Query]: WithOptionalNullables<ExtractVariablesDeep<Query[K]>> }[keyof Query]>;
-
 export type ExtractVariables<Query> = Query extends Variable<infer VType, infer VName>
   ? { [key in VName]: GetVariableType<VType> }
   : Query extends [infer Inputs, infer Outputs]
-  ? ExtractVariablesDeep<Inputs> & ExtractVariables<Outputs>
-  : Query extends string | number | boolean | Array<string | number | boolean>
+  ? ExtractVariables<Inputs> & ExtractVariables<Outputs>
+  : Query extends string | number | boolean
   ? // eslint-disable-next-line @typescript-eslint/ban-types
     {}
   : UnionToIntersection<{ [K in keyof Query]: WithOptionalNullables<ExtractVariables<Query[K]>> }[keyof Query]>;
@@ -1500,27 +1473,27 @@ by FacetValue ID. Examples:
 	customFields?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
-	["UpdateOrderItemsResult"]: AliasType<{		["...on Order"]?: ValueTypes["Order"],
-		["...on OrderModificationError"]?: ValueTypes["OrderModificationError"],
-		["...on OrderLimitError"]?: ValueTypes["OrderLimitError"],
-		["...on NegativeQuantityError"]?: ValueTypes["NegativeQuantityError"],
-		["...on InsufficientStockError"]?: ValueTypes["InsufficientStockError"]
+	["UpdateOrderItemsResult"]: AliasType<{		["...on Order"] : ValueTypes["Order"],
+		["...on OrderModificationError"] : ValueTypes["OrderModificationError"],
+		["...on OrderLimitError"] : ValueTypes["OrderLimitError"],
+		["...on NegativeQuantityError"] : ValueTypes["NegativeQuantityError"],
+		["...on InsufficientStockError"] : ValueTypes["InsufficientStockError"]
 		__typename?: boolean | `@${string}`
 }>;
-	["RemoveOrderItemsResult"]: AliasType<{		["...on Order"]?: ValueTypes["Order"],
-		["...on OrderModificationError"]?: ValueTypes["OrderModificationError"]
+	["RemoveOrderItemsResult"]: AliasType<{		["...on Order"] : ValueTypes["Order"],
+		["...on OrderModificationError"] : ValueTypes["OrderModificationError"]
 		__typename?: boolean | `@${string}`
 }>;
-	["SetOrderShippingMethodResult"]: AliasType<{		["...on Order"]?: ValueTypes["Order"],
-		["...on OrderModificationError"]?: ValueTypes["OrderModificationError"],
-		["...on IneligibleShippingMethodError"]?: ValueTypes["IneligibleShippingMethodError"],
-		["...on NoActiveOrderError"]?: ValueTypes["NoActiveOrderError"]
+	["SetOrderShippingMethodResult"]: AliasType<{		["...on Order"] : ValueTypes["Order"],
+		["...on OrderModificationError"] : ValueTypes["OrderModificationError"],
+		["...on IneligibleShippingMethodError"] : ValueTypes["IneligibleShippingMethodError"],
+		["...on NoActiveOrderError"] : ValueTypes["NoActiveOrderError"]
 		__typename?: boolean | `@${string}`
 }>;
-	["ApplyCouponCodeResult"]: AliasType<{		["...on Order"]?: ValueTypes["Order"],
-		["...on CouponCodeExpiredError"]?: ValueTypes["CouponCodeExpiredError"],
-		["...on CouponCodeInvalidError"]?: ValueTypes["CouponCodeInvalidError"],
-		["...on CouponCodeLimitError"]?: ValueTypes["CouponCodeLimitError"]
+	["ApplyCouponCodeResult"]: AliasType<{		["...on Order"] : ValueTypes["Order"],
+		["...on CouponCodeExpiredError"] : ValueTypes["CouponCodeExpiredError"],
+		["...on CouponCodeInvalidError"] : ValueTypes["CouponCodeInvalidError"],
+		["...on CouponCodeLimitError"] : ValueTypes["CouponCodeLimitError"]
 		__typename?: boolean | `@${string}`
 }>;
 	/** @description
@@ -1685,15 +1658,15 @@ See https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/datetime-loc
 	value?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
-	["CustomFieldConfig"]: AliasType<{		["...on StringCustomFieldConfig"]?: ValueTypes["StringCustomFieldConfig"],
-		["...on LocaleStringCustomFieldConfig"]?: ValueTypes["LocaleStringCustomFieldConfig"],
-		["...on IntCustomFieldConfig"]?: ValueTypes["IntCustomFieldConfig"],
-		["...on FloatCustomFieldConfig"]?: ValueTypes["FloatCustomFieldConfig"],
-		["...on BooleanCustomFieldConfig"]?: ValueTypes["BooleanCustomFieldConfig"],
-		["...on DateTimeCustomFieldConfig"]?: ValueTypes["DateTimeCustomFieldConfig"],
-		["...on RelationCustomFieldConfig"]?: ValueTypes["RelationCustomFieldConfig"],
-		["...on TextCustomFieldConfig"]?: ValueTypes["TextCustomFieldConfig"],
-		["...on LocaleTextCustomFieldConfig"]?: ValueTypes["LocaleTextCustomFieldConfig"]
+	["CustomFieldConfig"]: AliasType<{		["...on StringCustomFieldConfig"] : ValueTypes["StringCustomFieldConfig"],
+		["...on LocaleStringCustomFieldConfig"] : ValueTypes["LocaleStringCustomFieldConfig"],
+		["...on IntCustomFieldConfig"] : ValueTypes["IntCustomFieldConfig"],
+		["...on FloatCustomFieldConfig"] : ValueTypes["FloatCustomFieldConfig"],
+		["...on BooleanCustomFieldConfig"] : ValueTypes["BooleanCustomFieldConfig"],
+		["...on DateTimeCustomFieldConfig"] : ValueTypes["DateTimeCustomFieldConfig"],
+		["...on RelationCustomFieldConfig"] : ValueTypes["RelationCustomFieldConfig"],
+		["...on TextCustomFieldConfig"] : ValueTypes["TextCustomFieldConfig"],
+		["...on LocaleTextCustomFieldConfig"] : ValueTypes["LocaleTextCustomFieldConfig"]
 		__typename?: boolean | `@${string}`
 }>;
 	["CustomerGroup"]: AliasType<{
@@ -2182,8 +2155,8 @@ by the search, and in what quantity. */
 		__typename?: boolean | `@${string}`
 }>;
 	/** The price of a search result product, either as a range or as a single price */
-["SearchResultPrice"]: AliasType<{		["...on PriceRange"]?: ValueTypes["PriceRange"],
-		["...on SinglePrice"]?: ValueTypes["SinglePrice"]
+["SearchResultPrice"]: AliasType<{		["...on PriceRange"] : ValueTypes["PriceRange"],
+		["...on SinglePrice"] : ValueTypes["SinglePrice"]
 		__typename?: boolean | `@${string}`
 }>;
 	/** The price value where the result has a single price */
@@ -2675,88 +2648,88 @@ data generated by the payment provider. */
 	/** Specifies whether multiple "filter" arguments should be combines with a logical AND or OR operation. Defaults to AND. */
 	filterOperator?: ValueTypes["LogicalOperator"] | undefined | null | Variable<any, string>
 };
-	["AddPaymentToOrderResult"]: AliasType<{		["...on Order"]?: ValueTypes["Order"],
-		["...on OrderPaymentStateError"]?: ValueTypes["OrderPaymentStateError"],
-		["...on IneligiblePaymentMethodError"]?: ValueTypes["IneligiblePaymentMethodError"],
-		["...on PaymentFailedError"]?: ValueTypes["PaymentFailedError"],
-		["...on PaymentDeclinedError"]?: ValueTypes["PaymentDeclinedError"],
-		["...on OrderStateTransitionError"]?: ValueTypes["OrderStateTransitionError"],
-		["...on NoActiveOrderError"]?: ValueTypes["NoActiveOrderError"]
+	["AddPaymentToOrderResult"]: AliasType<{		["...on Order"] : ValueTypes["Order"],
+		["...on OrderPaymentStateError"] : ValueTypes["OrderPaymentStateError"],
+		["...on IneligiblePaymentMethodError"] : ValueTypes["IneligiblePaymentMethodError"],
+		["...on PaymentFailedError"] : ValueTypes["PaymentFailedError"],
+		["...on PaymentDeclinedError"] : ValueTypes["PaymentDeclinedError"],
+		["...on OrderStateTransitionError"] : ValueTypes["OrderStateTransitionError"],
+		["...on NoActiveOrderError"] : ValueTypes["NoActiveOrderError"]
 		__typename?: boolean | `@${string}`
 }>;
-	["TransitionOrderToStateResult"]: AliasType<{		["...on Order"]?: ValueTypes["Order"],
-		["...on OrderStateTransitionError"]?: ValueTypes["OrderStateTransitionError"]
+	["TransitionOrderToStateResult"]: AliasType<{		["...on Order"] : ValueTypes["Order"],
+		["...on OrderStateTransitionError"] : ValueTypes["OrderStateTransitionError"]
 		__typename?: boolean | `@${string}`
 }>;
-	["SetCustomerForOrderResult"]: AliasType<{		["...on Order"]?: ValueTypes["Order"],
-		["...on AlreadyLoggedInError"]?: ValueTypes["AlreadyLoggedInError"],
-		["...on EmailAddressConflictError"]?: ValueTypes["EmailAddressConflictError"],
-		["...on NoActiveOrderError"]?: ValueTypes["NoActiveOrderError"],
-		["...on GuestCheckoutError"]?: ValueTypes["GuestCheckoutError"]
+	["SetCustomerForOrderResult"]: AliasType<{		["...on Order"] : ValueTypes["Order"],
+		["...on AlreadyLoggedInError"] : ValueTypes["AlreadyLoggedInError"],
+		["...on EmailAddressConflictError"] : ValueTypes["EmailAddressConflictError"],
+		["...on NoActiveOrderError"] : ValueTypes["NoActiveOrderError"],
+		["...on GuestCheckoutError"] : ValueTypes["GuestCheckoutError"]
 		__typename?: boolean | `@${string}`
 }>;
-	["RegisterCustomerAccountResult"]: AliasType<{		["...on Success"]?: ValueTypes["Success"],
-		["...on MissingPasswordError"]?: ValueTypes["MissingPasswordError"],
-		["...on PasswordValidationError"]?: ValueTypes["PasswordValidationError"],
-		["...on NativeAuthStrategyError"]?: ValueTypes["NativeAuthStrategyError"]
+	["RegisterCustomerAccountResult"]: AliasType<{		["...on Success"] : ValueTypes["Success"],
+		["...on MissingPasswordError"] : ValueTypes["MissingPasswordError"],
+		["...on PasswordValidationError"] : ValueTypes["PasswordValidationError"],
+		["...on NativeAuthStrategyError"] : ValueTypes["NativeAuthStrategyError"]
 		__typename?: boolean | `@${string}`
 }>;
-	["RefreshCustomerVerificationResult"]: AliasType<{		["...on Success"]?: ValueTypes["Success"],
-		["...on NativeAuthStrategyError"]?: ValueTypes["NativeAuthStrategyError"]
+	["RefreshCustomerVerificationResult"]: AliasType<{		["...on Success"] : ValueTypes["Success"],
+		["...on NativeAuthStrategyError"] : ValueTypes["NativeAuthStrategyError"]
 		__typename?: boolean | `@${string}`
 }>;
-	["VerifyCustomerAccountResult"]: AliasType<{		["...on CurrentUser"]?: ValueTypes["CurrentUser"],
-		["...on VerificationTokenInvalidError"]?: ValueTypes["VerificationTokenInvalidError"],
-		["...on VerificationTokenExpiredError"]?: ValueTypes["VerificationTokenExpiredError"],
-		["...on MissingPasswordError"]?: ValueTypes["MissingPasswordError"],
-		["...on PasswordValidationError"]?: ValueTypes["PasswordValidationError"],
-		["...on PasswordAlreadySetError"]?: ValueTypes["PasswordAlreadySetError"],
-		["...on NativeAuthStrategyError"]?: ValueTypes["NativeAuthStrategyError"]
+	["VerifyCustomerAccountResult"]: AliasType<{		["...on CurrentUser"] : ValueTypes["CurrentUser"],
+		["...on VerificationTokenInvalidError"] : ValueTypes["VerificationTokenInvalidError"],
+		["...on VerificationTokenExpiredError"] : ValueTypes["VerificationTokenExpiredError"],
+		["...on MissingPasswordError"] : ValueTypes["MissingPasswordError"],
+		["...on PasswordValidationError"] : ValueTypes["PasswordValidationError"],
+		["...on PasswordAlreadySetError"] : ValueTypes["PasswordAlreadySetError"],
+		["...on NativeAuthStrategyError"] : ValueTypes["NativeAuthStrategyError"]
 		__typename?: boolean | `@${string}`
 }>;
-	["UpdateCustomerPasswordResult"]: AliasType<{		["...on Success"]?: ValueTypes["Success"],
-		["...on InvalidCredentialsError"]?: ValueTypes["InvalidCredentialsError"],
-		["...on PasswordValidationError"]?: ValueTypes["PasswordValidationError"],
-		["...on NativeAuthStrategyError"]?: ValueTypes["NativeAuthStrategyError"]
+	["UpdateCustomerPasswordResult"]: AliasType<{		["...on Success"] : ValueTypes["Success"],
+		["...on InvalidCredentialsError"] : ValueTypes["InvalidCredentialsError"],
+		["...on PasswordValidationError"] : ValueTypes["PasswordValidationError"],
+		["...on NativeAuthStrategyError"] : ValueTypes["NativeAuthStrategyError"]
 		__typename?: boolean | `@${string}`
 }>;
-	["RequestUpdateCustomerEmailAddressResult"]: AliasType<{		["...on Success"]?: ValueTypes["Success"],
-		["...on InvalidCredentialsError"]?: ValueTypes["InvalidCredentialsError"],
-		["...on EmailAddressConflictError"]?: ValueTypes["EmailAddressConflictError"],
-		["...on NativeAuthStrategyError"]?: ValueTypes["NativeAuthStrategyError"]
+	["RequestUpdateCustomerEmailAddressResult"]: AliasType<{		["...on Success"] : ValueTypes["Success"],
+		["...on InvalidCredentialsError"] : ValueTypes["InvalidCredentialsError"],
+		["...on EmailAddressConflictError"] : ValueTypes["EmailAddressConflictError"],
+		["...on NativeAuthStrategyError"] : ValueTypes["NativeAuthStrategyError"]
 		__typename?: boolean | `@${string}`
 }>;
-	["UpdateCustomerEmailAddressResult"]: AliasType<{		["...on Success"]?: ValueTypes["Success"],
-		["...on IdentifierChangeTokenInvalidError"]?: ValueTypes["IdentifierChangeTokenInvalidError"],
-		["...on IdentifierChangeTokenExpiredError"]?: ValueTypes["IdentifierChangeTokenExpiredError"],
-		["...on NativeAuthStrategyError"]?: ValueTypes["NativeAuthStrategyError"]
+	["UpdateCustomerEmailAddressResult"]: AliasType<{		["...on Success"] : ValueTypes["Success"],
+		["...on IdentifierChangeTokenInvalidError"] : ValueTypes["IdentifierChangeTokenInvalidError"],
+		["...on IdentifierChangeTokenExpiredError"] : ValueTypes["IdentifierChangeTokenExpiredError"],
+		["...on NativeAuthStrategyError"] : ValueTypes["NativeAuthStrategyError"]
 		__typename?: boolean | `@${string}`
 }>;
-	["RequestPasswordResetResult"]: AliasType<{		["...on Success"]?: ValueTypes["Success"],
-		["...on NativeAuthStrategyError"]?: ValueTypes["NativeAuthStrategyError"]
+	["RequestPasswordResetResult"]: AliasType<{		["...on Success"] : ValueTypes["Success"],
+		["...on NativeAuthStrategyError"] : ValueTypes["NativeAuthStrategyError"]
 		__typename?: boolean | `@${string}`
 }>;
-	["ResetPasswordResult"]: AliasType<{		["...on CurrentUser"]?: ValueTypes["CurrentUser"],
-		["...on PasswordResetTokenInvalidError"]?: ValueTypes["PasswordResetTokenInvalidError"],
-		["...on PasswordResetTokenExpiredError"]?: ValueTypes["PasswordResetTokenExpiredError"],
-		["...on PasswordValidationError"]?: ValueTypes["PasswordValidationError"],
-		["...on NativeAuthStrategyError"]?: ValueTypes["NativeAuthStrategyError"],
-		["...on NotVerifiedError"]?: ValueTypes["NotVerifiedError"]
+	["ResetPasswordResult"]: AliasType<{		["...on CurrentUser"] : ValueTypes["CurrentUser"],
+		["...on PasswordResetTokenInvalidError"] : ValueTypes["PasswordResetTokenInvalidError"],
+		["...on PasswordResetTokenExpiredError"] : ValueTypes["PasswordResetTokenExpiredError"],
+		["...on PasswordValidationError"] : ValueTypes["PasswordValidationError"],
+		["...on NativeAuthStrategyError"] : ValueTypes["NativeAuthStrategyError"],
+		["...on NotVerifiedError"] : ValueTypes["NotVerifiedError"]
 		__typename?: boolean | `@${string}`
 }>;
-	["NativeAuthenticationResult"]: AliasType<{		["...on CurrentUser"]?: ValueTypes["CurrentUser"],
-		["...on InvalidCredentialsError"]?: ValueTypes["InvalidCredentialsError"],
-		["...on NotVerifiedError"]?: ValueTypes["NotVerifiedError"],
-		["...on NativeAuthStrategyError"]?: ValueTypes["NativeAuthStrategyError"]
+	["NativeAuthenticationResult"]: AliasType<{		["...on CurrentUser"] : ValueTypes["CurrentUser"],
+		["...on InvalidCredentialsError"] : ValueTypes["InvalidCredentialsError"],
+		["...on NotVerifiedError"] : ValueTypes["NotVerifiedError"],
+		["...on NativeAuthStrategyError"] : ValueTypes["NativeAuthStrategyError"]
 		__typename?: boolean | `@${string}`
 }>;
-	["AuthenticationResult"]: AliasType<{		["...on CurrentUser"]?: ValueTypes["CurrentUser"],
-		["...on InvalidCredentialsError"]?: ValueTypes["InvalidCredentialsError"],
-		["...on NotVerifiedError"]?: ValueTypes["NotVerifiedError"]
+	["AuthenticationResult"]: AliasType<{		["...on CurrentUser"] : ValueTypes["CurrentUser"],
+		["...on InvalidCredentialsError"] : ValueTypes["InvalidCredentialsError"],
+		["...on NotVerifiedError"] : ValueTypes["NotVerifiedError"]
 		__typename?: boolean | `@${string}`
 }>;
-	["ActiveOrderResult"]: AliasType<{		["...on Order"]?: ValueTypes["Order"],
-		["...on NoActiveOrderError"]?: ValueTypes["NoActiveOrderError"]
+	["ActiveOrderResult"]: AliasType<{		["...on Order"] : ValueTypes["Order"],
+		["...on NoActiveOrderError"] : ValueTypes["NoActiveOrderError"]
 		__typename?: boolean | `@${string}`
 }>;
 	["ProductVariantFilterParameter"]: {
