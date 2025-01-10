@@ -185,7 +185,7 @@ export const AllTypesProps: Record<string,any> = {
 		price:"SortOrder"
 	},
 	CreateCustomerInput:{
-		customFields:"CreateCustomerCustomFieldsInput"
+		customFields:"JSON"
 	},
 	CreateAddressInput:{
 		customFields:"JSON"
@@ -241,10 +241,10 @@ export const AllTypesProps: Record<string,any> = {
 		privy:"PrivyAuthInput"
 	},
 	RegisterCustomerInput:{
-		customFields:"RegisterCustomerCustomFieldsInput"
+
 	},
 	UpdateCustomerInput:{
-		customFields:"UpdateCustomerCustomFieldsInput"
+		customFields:"JSON"
 	},
 	UpdateOrderInput:{
 		customFields:"JSON"
@@ -311,9 +311,7 @@ export const AllTypesProps: Record<string,any> = {
 		phoneNumber:"StringOperators",
 		emailAddress:"StringOperators",
 		linkedAccounts:"StringOperators",
-		privy_id:"StringOperators",
-		xLoginToken:"StringOperators",
-		xRefreshToken:"StringOperators"
+		privy_id:"StringOperators"
 	},
 	CustomerSortParameter:{
 		id:"SortOrder",
@@ -325,9 +323,7 @@ export const AllTypesProps: Record<string,any> = {
 		phoneNumber:"SortOrder",
 		emailAddress:"SortOrder",
 		linkedAccounts:"SortOrder",
-		privy_id:"SortOrder",
-		xLoginToken:"SortOrder",
-		xRefreshToken:"SortOrder"
+		privy_id:"SortOrder"
 	},
 	OrderFilterParameter:{
 		id:"IDOperators",
@@ -443,16 +439,7 @@ export const AllTypesProps: Record<string,any> = {
 		slug:"SortOrder",
 		description:"SortOrder"
 	},
-	CreateCustomerCustomFieldsInput:{
-
-	},
-	UpdateCustomerCustomFieldsInput:{
-
-	},
 	PrivyAuthInput:{
-
-	},
-	RegisterCustomerCustomFieldsInput:{
 
 	}
 }
@@ -1778,9 +1765,7 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	CustomerCustomFields:{
 		linkedAccounts:"String",
-		privy_id:"String",
-		xLoginToken:"String",
-		xRefreshToken:"String"
+		privy_id:"String"
 	}
 }
 
