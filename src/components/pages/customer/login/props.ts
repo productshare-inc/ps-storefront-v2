@@ -11,12 +11,13 @@ export const getServerSideProps = async (context: GetServerSidePropsContext) => 
 
     const collections = await getCollections(r.context);
     const navigation = arrayToTree(collections);
-
+    const requiresAuth = true;
     const returnedStuff = {
         ...r.props,
         ...r.context,
         collections,
         navigation,
+        requiresAuth,
     };
 
     return { props: returnedStuff };

@@ -39,7 +39,7 @@ export function AuthLayout({ children }: AuthLayoutProps) {
             description: 'You have been successfully logged out.',
             variant: 'default',
         });
-    }, [ctx, toast]);
+    }, [ctx, user, toast]);
 
     const onSuccess = async () => {
         console.log('User logging out:', user);
@@ -162,7 +162,7 @@ export function AuthLayout({ children }: AuthLayoutProps) {
                 }
             }
         },
-        [authenticated, hasExecuted, toast],
+        [authenticated, toast],
     );
 
     useOAuthTokens({
@@ -172,7 +172,6 @@ export function AuthLayout({ children }: AuthLayoutProps) {
     useEffect(() => {
         let isMounted = true;
         console.log('running useEffect in Authlayout');
-        const { logout } = useLogout({ onSuccess });
         const initialize = async () => {
             if (ready && authenticated && user && isMounted) {
                 await createOrFetchUser();

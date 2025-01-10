@@ -76,11 +76,11 @@ export const Navigation: React.FC<NavigationProps> = ({ navigation, categories, 
             variant: 'default',
         });
     }, [ctx, toast]);
-    const onSuccessLogout = async () => {
+    const onSuccessLogout = useCallback(async () => {
         console.log('User logging out:', user);
         await vendureLogoutFromNav();
         push('/customer/login');
-    };
+    }, [vendureLogoutFromNav, push]);
 
     useLogout({ onSuccess: onSuccessLogout });
     const handleLogout = async () => {

@@ -29,7 +29,7 @@ export const CustomerNavigation: React.FC = () => {
     const push = usePush();
     const { logout } = usePrivy();
     const onClick = async () => {
-        await storefrontApiMutation(ctx)({ logout: { success: true } });
+        // await storefrontApiMutation(ctx)({ logout: { success: true } });
         await logout();
         //push('/');
     };

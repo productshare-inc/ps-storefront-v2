@@ -25,6 +25,7 @@ import { LoginCard } from '@/components/auth/LoginCard';
 
 export const SignInPage: React.FC<InferGetServerSidePropsType<typeof getServerSideProps>> = props => {
     const ctx = useChannels();
+    
     const { t } = useTranslation('customer');
     const { t: tErrors } = useTranslation('common');
     const { fetchActiveOrder } = useCart();

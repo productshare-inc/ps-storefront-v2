@@ -14,6 +14,7 @@ import { getServerSideProps } from './props';
 export const VerifyPage: React.FC<InferGetServerSidePropsType<typeof getServerSideProps>> = props => {
     const { t } = useTranslation('customer');
     const { t: tError } = useTranslation('common');
+    const requiresAuth = true;
     return (
         <Layout categories={props.collections} navigation={props.navigation} pageTitle={t('verify.title')}>
             <ContentContainer>

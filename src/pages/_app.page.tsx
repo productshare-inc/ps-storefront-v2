@@ -22,6 +22,8 @@ import { Toaster } from '@/components/ui/toaster';
 const nunito = Nunito_Sans({ subsets: ['latin'], variable: '--nunito-font' });
 
 const App = ({ Component, pageProps }: AppProps) => {
+    const requiresAuth = pageProps.requiresAuth || false;
+    console.log('This component requires auth: ', requiresAuth);
     return (
         <ThemeProvider theme={LightTheme}>
             <PrivyProvider
@@ -37,35 +39,41 @@ const App = ({ Component, pageProps }: AppProps) => {
                     },
                 }}>
                 <ChannelsProvider initialState={{ channel: pageProps.channel, locale: pageProps.locale }}>
-                        <Global styles={`body { font-family:${nunito.style.fontFamily}; }`} />
-                        {/* `checkout` prop should exist only on routes with checkout functionally */}
-                        {'checkout' in pageProps ? (
-                            <CheckoutProvider initialState={{ checkout: pageProps.checkout }}>
-                                <Component {...pageProps} />
-                            </CheckoutProvider>
-                        ) : (
-                            <CartProvider>
-                                <ProductProvider
+                    <Global styles={`body { font-family:${nunito.style.fontFamily}; }`} />
+                    {/* `checkout` prop should exist only on routes with checkout functionally */}
+                    {'checkout' in pageProps ? (
+                        <CheckoutProvider initialState={{ checkout: pageProps.checkout }}>
+                            <Component {...pageProps} />
+                        </CheckoutProvider>
+                    ) : (
+                        <CartProvider>
+                            <ProductProvider
+                                initialState={{
+                                    product: 'product' in pageProps ? pageProps.product : undefined,
+                                }}>
+                                <CollectionProvider
                                     initialState={{
-                                        product: 'product' in pageProps ? pageProps.product : undefined,
+                                        collection: 'collection' in pageProps ? pageProps.collection : undefined,
+                                        products: 'products' in pageProps ? pageProps.products : undefined,
+                                        facets: 'facets' in pageProps ? pageProps.facets : undefined,
+                                        totalProducts:
+                                            'totalProducts' in pageProps ? pageProps.totalProducts : undefined,
+                                        filters: 'filters' in pageProps ? pageProps.filters : undefined,
+                                        searchQuery: 'searchQuery' in pageProps ? pageProps.searchQuery : undefined,
+                                        page: 'page' in pageProps ? pageProps.page : undefined,
+                                        sort: 'sort' in pageProps ? pageProps.sort : undefined,
                                     }}>
-                                    <CollectionProvider
-                                        initialState={{
-                                            collection: 'collection' in pageProps ? pageProps.collection : undefined,
-                                            products: 'products' in pageProps ? pageProps.products : undefined,
-                                            facets: 'facets' in pageProps ? pageProps.facets : undefined,
-                                            totalProducts:
-                                                'totalProducts' in pageProps ? pageProps.totalProducts : undefined,
-                                            filters: 'filters' in pageProps ? pageProps.filters : undefined,
-                                            searchQuery: 'searchQuery' in pageProps ? pageProps.searchQuery : undefined,
-                                            page: 'page' in pageProps ? pageProps.page : undefined,
-                                            sort: 'sort' in pageProps ? pageProps.sort : undefined,
-                                        }}>
+                                    {requiresAuth ? (
+                                        <AuthLayout>
+                                            <Component {...pageProps} />
+                                        </AuthLayout>
+                                    ) : (
                                         <Component {...pageProps} />
-                                    </CollectionProvider>
-                                </ProductProvider>
-                            </CartProvider>
-                        )}
+                                    )}
+                                </CollectionProvider>
+                            </ProductProvider>
+                        </CartProvider>
+                    )}
                     <Toaster />
                 </ChannelsProvider>
             </PrivyProvider>

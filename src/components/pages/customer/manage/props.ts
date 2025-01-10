@@ -10,6 +10,7 @@ import { GetServerSidePropsContext } from 'next';
 export const getServerSideProps = async (context: GetServerSidePropsContext) => {
     const r = await makeServerSideProps(['common', 'customer'])(context);
     const translationRedirect = redirectFromDefaultChannelSSR(context);
+    const requiresAuth = true;
     if (translationRedirect) return translationRedirect;
 
     const collections = await getCollections(r.context);
@@ -37,6 +38,7 @@ export const getServerSideProps = async (context: GetServerSidePropsContext) => 
             activeCustomer: customer,
             lastOrder: orders.items && orders.items.length > 0 ? orders.items[0] : null,
             navigation,
+            requiresAuth,
         };
 
         return { props: returnedStuff };
