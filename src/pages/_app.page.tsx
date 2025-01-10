@@ -23,7 +23,7 @@ const nunito = Nunito_Sans({ subsets: ['latin'], variable: '--nunito-font' });
 
 const App = ({ Component, pageProps }: AppProps) => {
     const requiresAuth = pageProps.requiresAuth || false;
-    console.log('This component requires auth: ', requiresAuth);
+    //console.log('This component requires auth: ', requiresAuth);
     return (
         <ThemeProvider theme={LightTheme}>
             <PrivyProvider
