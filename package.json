@@ -5,8 +5,9 @@
     "author": {
         "email": "admin@productshare.co",
         "name": "ProductShare",
-        "url": "https://aexol.com"
+        "url": "https://productshare.co"
     },
+    "license": "MIT",
     "scripts": {
         "dev": "next dev -p 3001",
         "build": "next build",

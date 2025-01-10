@@ -1,7 +1,7 @@
 /* eslint-disable */
 
 import { AllTypesProps, ReturnTypes, Ops } from './const';
-export const HOST = "https://staging.productshare.net/shop-api"
+export const HOST = "http://localhost:3000/shop-api"
 
 
 export const HEADERS = {}
@@ -156,66 +156,82 @@ export const InternalsBuildQuery = ({
   return ibb;
 };
 
+type UnionOverrideKeys<T, U> = Omit<T, keyof U> & U;
+
 export const Thunder =
-  (fn: FetchFunction) =>
-  <O extends keyof typeof Ops, SCLR extends ScalarDefinition, R extends keyof ValueTypes = GenericOperation<O>>(
+  <SCLR extends ScalarDefinition>(fn: FetchFunction, thunderGraphQLOptions?: ThunderGraphQLOptions<SCLR>) =>
+  <O extends keyof typeof Ops, OVERRIDESCLR extends SCLR, R extends keyof ValueTypes = GenericOperation<O>>(
     operation: O,
-    graphqlOptions?: ThunderGraphQLOptions<SCLR>,
+    graphqlOptions?: ThunderGraphQLOptions<OVERRIDESCLR>,
   ) =>
   <Z extends ValueTypes[R]>(
-    o: (Z & ValueTypes[R]) | ValueTypes[R],
+    o: Z & {
+      [P in keyof Z]: P extends keyof ValueTypes[R] ? Z[P] : never;
+    },
     ops?: OperationOptions & { variables?: Record<string, unknown> },
-  ) =>
-    fn(
+  ) => {
+    const options = {
+      ...thunderGraphQLOptions,
+      ...graphqlOptions,
+    };
+    return fn(
       Zeus(operation, o, {
         operationOptions: ops,
-        scalars: graphqlOptions?.scalars,
+        scalars: options?.scalars,
       }),
       ops?.variables,
     ).then((data) => {
-      if (graphqlOptions?.scalars) {
+      if (options?.scalars) {
         return decodeScalarsInResponse({
           response: data,
           initialOp: operation,
           initialZeusQuery: o as VType,
           returns: ReturnTypes,
-          scalars: graphqlOptions.scalars,
+          scalars: options.scalars,
           ops: Ops,
         });
       }
       return data;
-    }) as Promise<InputType<GraphQLTypes[R], Z, SCLR>>;
+    }) as Promise<InputType<GraphQLTypes[R], Z, UnionOverrideKeys<SCLR, OVERRIDESCLR>>>;
+  };
 
 export const Chain = (...options: chainOptions) => Thunder(apiFetch(options));
 
 export const SubscriptionThunder =
-  (fn: SubscriptionFunction) =>
-  <O extends keyof typeof Ops, SCLR extends ScalarDefinition, R extends keyof ValueTypes = GenericOperation<O>>(
+  <SCLR extends ScalarDefinition>(fn: SubscriptionFunction, thunderGraphQLOptions?: ThunderGraphQLOptions<SCLR>) =>
+  <O extends keyof typeof Ops, OVERRIDESCLR extends SCLR, R extends keyof ValueTypes = GenericOperation<O>>(
     operation: O,
-    graphqlOptions?: ThunderGraphQLOptions<SCLR>,
+    graphqlOptions?: ThunderGraphQLOptions<OVERRIDESCLR>,
   ) =>
   <Z extends ValueTypes[R]>(
-    o: (Z & ValueTypes[R]) | ValueTypes[R],
+    o: Z & {
+      [P in keyof Z]: P extends keyof ValueTypes[R] ? Z[P] : never;
+    },
     ops?: OperationOptions & { variables?: ExtractVariables<Z> },
   ) => {
+    const options = {
+      ...thunderGraphQLOptions,
+      ...graphqlOptions,
+    };
+    type CombinedSCLR = UnionOverrideKeys<SCLR, OVERRIDESCLR>;
     const returnedFunction = fn(
       Zeus(operation, o, {
         operationOptions: ops,
-        scalars: graphqlOptions?.scalars,
+        scalars: options?.scalars,
       }),
-    ) as SubscriptionToGraphQL<Z, GraphQLTypes[R], SCLR>;
-    if (returnedFunction?.on && graphqlOptions?.scalars) {
+    ) as SubscriptionToGraphQL<Z, GraphQLTypes[R], CombinedSCLR>;
+    if (returnedFunction?.on && options?.scalars) {
       const wrapped = returnedFunction.on;
-      returnedFunction.on = (fnToCall: (args: InputType<GraphQLTypes[R], Z, SCLR>) => void) =>
-        wrapped((data: InputType<GraphQLTypes[R], Z, SCLR>) => {
-          if (graphqlOptions?.scalars) {
+      returnedFunction.on = (fnToCall: (args: InputType<GraphQLTypes[R], Z, CombinedSCLR>) => void) =>
+        wrapped((data: InputType<GraphQLTypes[R], Z, CombinedSCLR>) => {
+          if (options?.scalars) {
             return fnToCall(
               decodeScalarsInResponse({
                 response: data,
                 initialOp: operation,
                 initialZeusQuery: o as VType,
                 returns: ReturnTypes,
-                scalars: graphqlOptions.scalars,
+                scalars: options.scalars,
                 ops: Ops,
               }),
             );
@@ -233,7 +249,7 @@ export const Zeus = <
   R extends keyof ValueTypes = GenericOperation<O>,
 >(
   operation: O,
-  o: (Z & ValueTypes[R]) | ValueTypes[R],
+  o: Z,
   ops?: {
     operationOptions?: OperationOptions;
     scalars?: ScalarDefinition;
@@ -751,7 +767,11 @@ export type ScalarResolver = {
   decode?: (s: unknown) => unknown;
 };
 
-export type SelectionFunction<V> = <T>(t: T | V) => T;
+export type SelectionFunction<V> = <Z extends V>(
+  t: Z & {
+    [P in keyof Z]: P extends keyof V ? Z[P] : never;
+  },
+) => Z;
 
 type BuiltInVariableTypes = {
   ['String']: string;
@@ -813,11 +833,18 @@ export type Variable<T extends GraphQLVariableType, Name extends string> = {
   ' __zeus_type': T;
 };
 
+export type ExtractVariablesDeep<Query> = Query extends Variable<infer VType, infer VName>
+  ? { [key in VName]: GetVariableType<VType> }
+  : Query extends string | number | boolean | Array<string | number | boolean>
+  ? // eslint-disable-next-line @typescript-eslint/ban-types
+    {}
+  : UnionToIntersection<{ [K in keyof Query]: WithOptionalNullables<ExtractVariablesDeep<Query[K]>> }[keyof Query]>;
+
 export type ExtractVariables<Query> = Query extends Variable<infer VType, infer VName>
   ? { [key in VName]: GetVariableType<VType> }
   : Query extends [infer Inputs, infer Outputs]
-  ? ExtractVariables<Inputs> & ExtractVariables<Outputs>
-  : Query extends string | number | boolean
+  ? ExtractVariablesDeep<Inputs> & ExtractVariables<Outputs>
+  : Query extends string | number | boolean | Array<string | number | boolean>
   ? // eslint-disable-next-line @typescript-eslint/ban-types
     {}
   : UnionToIntersection<{ [K in keyof Query]: WithOptionalNullables<ExtractVariables<Query[K]>> }[keyof Query]>;
@@ -1415,7 +1442,7 @@ by FacetValue ID. Examples:
 	lastName: string | Variable<any, string>,
 	phoneNumber?: string | undefined | null | Variable<any, string>,
 	emailAddress: string | Variable<any, string>,
-	customFields?: ValueTypes["JSON"] | undefined | null | Variable<any, string>
+	customFields?: ValueTypes["CreateCustomerCustomFieldsInput"] | undefined | null | Variable<any, string>
 };
 	["CreateAddressInput"]: {
 	fullName?: string | undefined | null | Variable<any, string>,
@@ -1473,27 +1500,27 @@ by FacetValue ID. Examples:
 	customFields?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
-	["UpdateOrderItemsResult"]: AliasType<{		["...on Order"] : ValueTypes["Order"],
-		["...on OrderModificationError"] : ValueTypes["OrderModificationError"],
-		["...on OrderLimitError"] : ValueTypes["OrderLimitError"],
-		["...on NegativeQuantityError"] : ValueTypes["NegativeQuantityError"],
-		["...on InsufficientStockError"] : ValueTypes["InsufficientStockError"]
+	["UpdateOrderItemsResult"]: AliasType<{		["...on Order"]?: ValueTypes["Order"],
+		["...on OrderModificationError"]?: ValueTypes["OrderModificationError"],
+		["...on OrderLimitError"]?: ValueTypes["OrderLimitError"],
+		["...on NegativeQuantityError"]?: ValueTypes["NegativeQuantityError"],
+		["...on InsufficientStockError"]?: ValueTypes["InsufficientStockError"]
 		__typename?: boolean | `@${string}`
 }>;
-	["RemoveOrderItemsResult"]: AliasType<{		["...on Order"] : ValueTypes["Order"],
-		["...on OrderModificationError"] : ValueTypes["OrderModificationError"]
+	["RemoveOrderItemsResult"]: AliasType<{		["...on Order"]?: ValueTypes["Order"],
+		["...on OrderModificationError"]?: ValueTypes["OrderModificationError"]
 		__typename?: boolean | `@${string}`
 }>;
-	["SetOrderShippingMethodResult"]: AliasType<{		["...on Order"] : ValueTypes["Order"],
-		["...on OrderModificationError"] : ValueTypes["OrderModificationError"],
-		["...on IneligibleShippingMethodError"] : ValueTypes["IneligibleShippingMethodError"],
-		["...on NoActiveOrderError"] : ValueTypes["NoActiveOrderError"]
+	["SetOrderShippingMethodResult"]: AliasType<{		["...on Order"]?: ValueTypes["Order"],
+		["...on OrderModificationError"]?: ValueTypes["OrderModificationError"],
+		["...on IneligibleShippingMethodError"]?: ValueTypes["IneligibleShippingMethodError"],
+		["...on NoActiveOrderError"]?: ValueTypes["NoActiveOrderError"]
 		__typename?: boolean | `@${string}`
 }>;
-	["ApplyCouponCodeResult"]: AliasType<{		["...on Order"] : ValueTypes["Order"],
-		["...on CouponCodeExpiredError"] : ValueTypes["CouponCodeExpiredError"],
-		["...on CouponCodeInvalidError"] : ValueTypes["CouponCodeInvalidError"],
-		["...on CouponCodeLimitError"] : ValueTypes["CouponCodeLimitError"]
+	["ApplyCouponCodeResult"]: AliasType<{		["...on Order"]?: ValueTypes["Order"],
+		["...on CouponCodeExpiredError"]?: ValueTypes["CouponCodeExpiredError"],
+		["...on CouponCodeInvalidError"]?: ValueTypes["CouponCodeInvalidError"],
+		["...on CouponCodeLimitError"]?: ValueTypes["CouponCodeLimitError"]
 		__typename?: boolean | `@${string}`
 }>;
 	/** @description
@@ -1658,15 +1685,15 @@ See https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/datetime-loc
 	value?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
-	["CustomFieldConfig"]: AliasType<{		["...on StringCustomFieldConfig"] : ValueTypes["StringCustomFieldConfig"],
-		["...on LocaleStringCustomFieldConfig"] : ValueTypes["LocaleStringCustomFieldConfig"],
-		["...on IntCustomFieldConfig"] : ValueTypes["IntCustomFieldConfig"],
-		["...on FloatCustomFieldConfig"] : ValueTypes["FloatCustomFieldConfig"],
-		["...on BooleanCustomFieldConfig"] : ValueTypes["BooleanCustomFieldConfig"],
-		["...on DateTimeCustomFieldConfig"] : ValueTypes["DateTimeCustomFieldConfig"],
-		["...on RelationCustomFieldConfig"] : ValueTypes["RelationCustomFieldConfig"],
-		["...on TextCustomFieldConfig"] : ValueTypes["TextCustomFieldConfig"],
-		["...on LocaleTextCustomFieldConfig"] : ValueTypes["LocaleTextCustomFieldConfig"]
+	["CustomFieldConfig"]: AliasType<{		["...on StringCustomFieldConfig"]?: ValueTypes["StringCustomFieldConfig"],
+		["...on LocaleStringCustomFieldConfig"]?: ValueTypes["LocaleStringCustomFieldConfig"],
+		["...on IntCustomFieldConfig"]?: ValueTypes["IntCustomFieldConfig"],
+		["...on FloatCustomFieldConfig"]?: ValueTypes["FloatCustomFieldConfig"],
+		["...on BooleanCustomFieldConfig"]?: ValueTypes["BooleanCustomFieldConfig"],
+		["...on DateTimeCustomFieldConfig"]?: ValueTypes["DateTimeCustomFieldConfig"],
+		["...on RelationCustomFieldConfig"]?: ValueTypes["RelationCustomFieldConfig"],
+		["...on TextCustomFieldConfig"]?: ValueTypes["TextCustomFieldConfig"],
+		["...on LocaleTextCustomFieldConfig"]?: ValueTypes["LocaleTextCustomFieldConfig"]
 		__typename?: boolean | `@${string}`
 }>;
 	["CustomerGroup"]: AliasType<{
@@ -2155,8 +2182,8 @@ by the search, and in what quantity. */
 		__typename?: boolean | `@${string}`
 }>;
 	/** The price of a search result product, either as a range or as a single price */
-["SearchResultPrice"]: AliasType<{		["...on PriceRange"] : ValueTypes["PriceRange"],
-		["...on SinglePrice"] : ValueTypes["SinglePrice"]
+["SearchResultPrice"]: AliasType<{		["...on PriceRange"]?: ValueTypes["PriceRange"],
+		["...on SinglePrice"]?: ValueTypes["SinglePrice"]
 		__typename?: boolean | `@${string}`
 }>;
 	/** The price value where the result has a single price */
@@ -2566,14 +2593,15 @@ and an unverified user attempts to authenticate. */
 	firstName?: string | undefined | null | Variable<any, string>,
 	lastName?: string | undefined | null | Variable<any, string>,
 	phoneNumber?: string | undefined | null | Variable<any, string>,
-	password?: string | undefined | null | Variable<any, string>
+	password?: string | undefined | null | Variable<any, string>,
+	customFields?: ValueTypes["RegisterCustomerCustomFieldsInput"] | undefined | null | Variable<any, string>
 };
 	["UpdateCustomerInput"]: {
 	title?: string | undefined | null | Variable<any, string>,
 	firstName?: string | undefined | null | Variable<any, string>,
 	lastName?: string | undefined | null | Variable<any, string>,
 	phoneNumber?: string | undefined | null | Variable<any, string>,
-	customFields?: ValueTypes["JSON"] | undefined | null | Variable<any, string>
+	customFields?: ValueTypes["UpdateCustomerCustomFieldsInput"] | undefined | null | Variable<any, string>
 };
 	["UpdateOrderInput"]: {
 	customFields?: ValueTypes["JSON"] | undefined | null | Variable<any, string>
@@ -2648,88 +2676,88 @@ data generated by the payment provider. */
 	/** Specifies whether multiple "filter" arguments should be combines with a logical AND or OR operation. Defaults to AND. */
 	filterOperator?: ValueTypes["LogicalOperator"] | undefined | null | Variable<any, string>
 };
-	["AddPaymentToOrderResult"]: AliasType<{		["...on Order"] : ValueTypes["Order"],
-		["...on OrderPaymentStateError"] : ValueTypes["OrderPaymentStateError"],
-		["...on IneligiblePaymentMethodError"] : ValueTypes["IneligiblePaymentMethodError"],
-		["...on PaymentFailedError"] : ValueTypes["PaymentFailedError"],
-		["...on PaymentDeclinedError"] : ValueTypes["PaymentDeclinedError"],
-		["...on OrderStateTransitionError"] : ValueTypes["OrderStateTransitionError"],
-		["...on NoActiveOrderError"] : ValueTypes["NoActiveOrderError"]
+	["AddPaymentToOrderResult"]: AliasType<{		["...on Order"]?: ValueTypes["Order"],
+		["...on OrderPaymentStateError"]?: ValueTypes["OrderPaymentStateError"],
+		["...on IneligiblePaymentMethodError"]?: ValueTypes["IneligiblePaymentMethodError"],
+		["...on PaymentFailedError"]?: ValueTypes["PaymentFailedError"],
+		["...on PaymentDeclinedError"]?: ValueTypes["PaymentDeclinedError"],
+		["...on OrderStateTransitionError"]?: ValueTypes["OrderStateTransitionError"],
+		["...on NoActiveOrderError"]?: ValueTypes["NoActiveOrderError"]
 		__typename?: boolean | `@${string}`
 }>;
-	["TransitionOrderToStateResult"]: AliasType<{		["...on Order"] : ValueTypes["Order"],
-		["...on OrderStateTransitionError"] : ValueTypes["OrderStateTransitionError"]
+	["TransitionOrderToStateResult"]: AliasType<{		["...on Order"]?: ValueTypes["Order"],
+		["...on OrderStateTransitionError"]?: ValueTypes["OrderStateTransitionError"]
 		__typename?: boolean | `@${string}`
 }>;
-	["SetCustomerForOrderResult"]: AliasType<{		["...on Order"] : ValueTypes["Order"],
-		["...on AlreadyLoggedInError"] : ValueTypes["AlreadyLoggedInError"],
-		["...on EmailAddressConflictError"] : ValueTypes["EmailAddressConflictError"],
-		["...on NoActiveOrderError"] : ValueTypes["NoActiveOrderError"],
-		["...on GuestCheckoutError"] : ValueTypes["GuestCheckoutError"]
+	["SetCustomerForOrderResult"]: AliasType<{		["...on Order"]?: ValueTypes["Order"],
+		["...on AlreadyLoggedInError"]?: ValueTypes["AlreadyLoggedInError"],
+		["...on EmailAddressConflictError"]?: ValueTypes["EmailAddressConflictError"],
+		["...on NoActiveOrderError"]?: ValueTypes["NoActiveOrderError"],
+		["...on GuestCheckoutError"]?: ValueTypes["GuestCheckoutError"]
 		__typename?: boolean | `@${string}`
 }>;
-	["RegisterCustomerAccountResult"]: AliasType<{		["...on Success"] : ValueTypes["Success"],
-		["...on MissingPasswordError"] : ValueTypes["MissingPasswordError"],
-		["...on PasswordValidationError"] : ValueTypes["PasswordValidationError"],
-		["...on NativeAuthStrategyError"] : ValueTypes["NativeAuthStrategyError"]
+	["RegisterCustomerAccountResult"]: AliasType<{		["...on Success"]?: ValueTypes["Success"],
+		["...on MissingPasswordError"]?: ValueTypes["MissingPasswordError"],
+		["...on PasswordValidationError"]?: ValueTypes["PasswordValidationError"],
+		["...on NativeAuthStrategyError"]?: ValueTypes["NativeAuthStrategyError"]
 		__typename?: boolean | `@${string}`
 }>;
-	["RefreshCustomerVerificationResult"]: AliasType<{		["...on Success"] : ValueTypes["Success"],
-		["...on NativeAuthStrategyError"] : ValueTypes["NativeAuthStrategyError"]
+	["RefreshCustomerVerificationResult"]: AliasType<{		["...on Success"]?: ValueTypes["Success"],
+		["...on NativeAuthStrategyError"]?: ValueTypes["NativeAuthStrategyError"]
 		__typename?: boolean | `@${string}`
 }>;
-	["VerifyCustomerAccountResult"]: AliasType<{		["...on CurrentUser"] : ValueTypes["CurrentUser"],
-		["...on VerificationTokenInvalidError"] : ValueTypes["VerificationTokenInvalidError"],
-		["...on VerificationTokenExpiredError"] : ValueTypes["VerificationTokenExpiredError"],
-		["...on MissingPasswordError"] : ValueTypes["MissingPasswordError"],
-		["...on PasswordValidationError"] : ValueTypes["PasswordValidationError"],
-		["...on PasswordAlreadySetError"] : ValueTypes["PasswordAlreadySetError"],
-		["...on NativeAuthStrategyError"] : ValueTypes["NativeAuthStrategyError"]
+	["VerifyCustomerAccountResult"]: AliasType<{		["...on CurrentUser"]?: ValueTypes["CurrentUser"],
+		["...on VerificationTokenInvalidError"]?: ValueTypes["VerificationTokenInvalidError"],
+		["...on VerificationTokenExpiredError"]?: ValueTypes["VerificationTokenExpiredError"],
+		["...on MissingPasswordError"]?: ValueTypes["MissingPasswordError"],
+		["...on PasswordValidationError"]?: ValueTypes["PasswordValidationError"],
+		["...on PasswordAlreadySetError"]?: ValueTypes["PasswordAlreadySetError"],
+		["...on NativeAuthStrategyError"]?: ValueTypes["NativeAuthStrategyError"]
 		__typename?: boolean | `@${string}`
 }>;
-	["UpdateCustomerPasswordResult"]: AliasType<{		["...on Success"] : ValueTypes["Success"],
-		["...on InvalidCredentialsError"] : ValueTypes["InvalidCredentialsError"],
-		["...on PasswordValidationError"] : ValueTypes["PasswordValidationError"],
-		["...on NativeAuthStrategyError"] : ValueTypes["NativeAuthStrategyError"]
+	["UpdateCustomerPasswordResult"]: AliasType<{		["...on Success"]?: ValueTypes["Success"],
+		["...on InvalidCredentialsError"]?: ValueTypes["InvalidCredentialsError"],
+		["...on PasswordValidationError"]?: ValueTypes["PasswordValidationError"],
+		["...on NativeAuthStrategyError"]?: ValueTypes["NativeAuthStrategyError"]
 		__typename?: boolean | `@${string}`
 }>;
-	["RequestUpdateCustomerEmailAddressResult"]: AliasType<{		["...on Success"] : ValueTypes["Success"],
-		["...on InvalidCredentialsError"] : ValueTypes["InvalidCredentialsError"],
-		["...on EmailAddressConflictError"] : ValueTypes["EmailAddressConflictError"],
-		["...on NativeAuthStrategyError"] : ValueTypes["NativeAuthStrategyError"]
+	["RequestUpdateCustomerEmailAddressResult"]: AliasType<{		["...on Success"]?: ValueTypes["Success"],
+		["...on InvalidCredentialsError"]?: ValueTypes["InvalidCredentialsError"],
+		["...on EmailAddressConflictError"]?: ValueTypes["EmailAddressConflictError"],
+		["...on NativeAuthStrategyError"]?: ValueTypes["NativeAuthStrategyError"]
 		__typename?: boolean | `@${string}`
 }>;
-	["UpdateCustomerEmailAddressResult"]: AliasType<{		["...on Success"] : ValueTypes["Success"],
-		["...on IdentifierChangeTokenInvalidError"] : ValueTypes["IdentifierChangeTokenInvalidError"],
-		["...on IdentifierChangeTokenExpiredError"] : ValueTypes["IdentifierChangeTokenExpiredError"],
-		["...on NativeAuthStrategyError"] : ValueTypes["NativeAuthStrategyError"]
+	["UpdateCustomerEmailAddressResult"]: AliasType<{		["...on Success"]?: ValueTypes["Success"],
+		["...on IdentifierChangeTokenInvalidError"]?: ValueTypes["IdentifierChangeTokenInvalidError"],
+		["...on IdentifierChangeTokenExpiredError"]?: ValueTypes["IdentifierChangeTokenExpiredError"],
+		["...on NativeAuthStrategyError"]?: ValueTypes["NativeAuthStrategyError"]
 		__typename?: boolean | `@${string}`
 }>;
-	["RequestPasswordResetResult"]: AliasType<{		["...on Success"] : ValueTypes["Success"],
-		["...on NativeAuthStrategyError"] : ValueTypes["NativeAuthStrategyError"]
+	["RequestPasswordResetResult"]: AliasType<{		["...on Success"]?: ValueTypes["Success"],
+		["...on NativeAuthStrategyError"]?: ValueTypes["NativeAuthStrategyError"]
 		__typename?: boolean | `@${string}`
 }>;
-	["ResetPasswordResult"]: AliasType<{		["...on CurrentUser"] : ValueTypes["CurrentUser"],
-		["...on PasswordResetTokenInvalidError"] : ValueTypes["PasswordResetTokenInvalidError"],
-		["...on PasswordResetTokenExpiredError"] : ValueTypes["PasswordResetTokenExpiredError"],
-		["...on PasswordValidationError"] : ValueTypes["PasswordValidationError"],
-		["...on NativeAuthStrategyError"] : ValueTypes["NativeAuthStrategyError"],
-		["...on NotVerifiedError"] : ValueTypes["NotVerifiedError"]
+	["ResetPasswordResult"]: AliasType<{		["...on CurrentUser"]?: ValueTypes["CurrentUser"],
+		["...on PasswordResetTokenInvalidError"]?: ValueTypes["PasswordResetTokenInvalidError"],
+		["...on PasswordResetTokenExpiredError"]?: ValueTypes["PasswordResetTokenExpiredError"],
+		["...on PasswordValidationError"]?: ValueTypes["PasswordValidationError"],
+		["...on NativeAuthStrategyError"]?: ValueTypes["NativeAuthStrategyError"],
+		["...on NotVerifiedError"]?: ValueTypes["NotVerifiedError"]
 		__typename?: boolean | `@${string}`
 }>;
-	["NativeAuthenticationResult"]: AliasType<{		["...on CurrentUser"] : ValueTypes["CurrentUser"],
-		["...on InvalidCredentialsError"] : ValueTypes["InvalidCredentialsError"],
-		["...on NotVerifiedError"] : ValueTypes["NotVerifiedError"],
-		["...on NativeAuthStrategyError"] : ValueTypes["NativeAuthStrategyError"]
+	["NativeAuthenticationResult"]: AliasType<{		["...on CurrentUser"]?: ValueTypes["CurrentUser"],
+		["...on InvalidCredentialsError"]?: ValueTypes["InvalidCredentialsError"],
+		["...on NotVerifiedError"]?: ValueTypes["NotVerifiedError"],
+		["...on NativeAuthStrategyError"]?: ValueTypes["NativeAuthStrategyError"]
 		__typename?: boolean | `@${string}`
 }>;
-	["AuthenticationResult"]: AliasType<{		["...on CurrentUser"] : ValueTypes["CurrentUser"],
-		["...on InvalidCredentialsError"] : ValueTypes["InvalidCredentialsError"],
-		["...on NotVerifiedError"] : ValueTypes["NotVerifiedError"]
+	["AuthenticationResult"]: AliasType<{		["...on CurrentUser"]?: ValueTypes["CurrentUser"],
+		["...on InvalidCredentialsError"]?: ValueTypes["InvalidCredentialsError"],
+		["...on NotVerifiedError"]?: ValueTypes["NotVerifiedError"]
 		__typename?: boolean | `@${string}`
 }>;
-	["ActiveOrderResult"]: AliasType<{		["...on Order"] : ValueTypes["Order"],
-		["...on NoActiveOrderError"] : ValueTypes["NoActiveOrderError"]
+	["ActiveOrderResult"]: AliasType<{		["...on Order"]?: ValueTypes["Order"],
+		["...on NoActiveOrderError"]?: ValueTypes["NoActiveOrderError"]
 		__typename?: boolean | `@${string}`
 }>;
 	["ProductVariantFilterParameter"]: {
@@ -2766,7 +2794,9 @@ data generated by the payment provider. */
 	phoneNumber?: ValueTypes["StringOperators"] | undefined | null | Variable<any, string>,
 	emailAddress?: ValueTypes["StringOperators"] | undefined | null | Variable<any, string>,
 	linkedAccounts?: ValueTypes["StringOperators"] | undefined | null | Variable<any, string>,
-	privy_id?: ValueTypes["StringOperators"] | undefined | null | Variable<any, string>
+	privy_id?: ValueTypes["StringOperators"] | undefined | null | Variable<any, string>,
+	xLoginToken?: ValueTypes["StringOperators"] | undefined | null | Variable<any, string>,
+	xRefreshToken?: ValueTypes["StringOperators"] | undefined | null | Variable<any, string>
 };
 	["CustomerSortParameter"]: {
 	id?: ValueTypes["SortOrder"] | undefined | null | Variable<any, string>,
@@ -2778,7 +2808,9 @@ data generated by the payment provider. */
 	phoneNumber?: ValueTypes["SortOrder"] | undefined | null | Variable<any, string>,
 	emailAddress?: ValueTypes["SortOrder"] | undefined | null | Variable<any, string>,
 	linkedAccounts?: ValueTypes["SortOrder"] | undefined | null | Variable<any, string>,
-	privy_id?: ValueTypes["SortOrder"] | undefined | null | Variable<any, string>
+	privy_id?: ValueTypes["SortOrder"] | undefined | null | Variable<any, string>,
+	xLoginToken?: ValueTypes["SortOrder"] | undefined | null | Variable<any, string>,
+	xRefreshToken?: ValueTypes["SortOrder"] | undefined | null | Variable<any, string>
 };
 	["OrderFilterParameter"]: {
 	id?: ValueTypes["IDOperators"] | undefined | null | Variable<any, string>,
@@ -2897,10 +2929,21 @@ data generated by the payment provider. */
 	["CustomerCustomFields"]: AliasType<{
 	linkedAccounts?:boolean | `@${string}`,
 	privy_id?:boolean | `@${string}`,
+	xLoginToken?:boolean | `@${string}`,
+	xRefreshToken?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["CreateCustomerCustomFieldsInput"]: {
+	xRefreshToken?: string | undefined | null | Variable<any, string>
+};
+	["UpdateCustomerCustomFieldsInput"]: {
+	xRefreshToken?: string | undefined | null | Variable<any, string>
+};
 	["PrivyAuthInput"]: {
 	privyIdToken: string | Variable<any, string>
+};
+	["RegisterCustomerCustomFieldsInput"]: {
+	xRefreshToken?: string | undefined | null | Variable<any, string>
 }
   }
 
@@ -3480,7 +3523,7 @@ by FacetValue ID. Examples:
 	lastName: string,
 	phoneNumber?: string | undefined | null,
 	emailAddress: string,
-	customFields?: ResolverInputTypes["JSON"] | undefined | null
+	customFields?: ResolverInputTypes["CreateCustomerCustomFieldsInput"] | undefined | null
 };
 	["CreateAddressInput"]: {
 	fullName?: string | undefined | null,
@@ -4637,14 +4680,15 @@ and an unverified user attempts to authenticate. */
 	firstName?: string | undefined | null,
 	lastName?: string | undefined | null,
 	phoneNumber?: string | undefined | null,
-	password?: string | undefined | null
+	password?: string | undefined | null,
+	customFields?: ResolverInputTypes["RegisterCustomerCustomFieldsInput"] | undefined | null
 };
 	["UpdateCustomerInput"]: {
 	title?: string | undefined | null,
 	firstName?: string | undefined | null,
 	lastName?: string | undefined | null,
 	phoneNumber?: string | undefined | null,
-	customFields?: ResolverInputTypes["JSON"] | undefined | null
+	customFields?: ResolverInputTypes["UpdateCustomerCustomFieldsInput"] | undefined | null
 };
 	["UpdateOrderInput"]: {
 	customFields?: ResolverInputTypes["JSON"] | undefined | null
@@ -4851,7 +4895,9 @@ data generated by the payment provider. */
 	phoneNumber?: ResolverInputTypes["StringOperators"] | undefined | null,
 	emailAddress?: ResolverInputTypes["StringOperators"] | undefined | null,
 	linkedAccounts?: ResolverInputTypes["StringOperators"] | undefined | null,
-	privy_id?: ResolverInputTypes["StringOperators"] | undefined | null
+	privy_id?: ResolverInputTypes["StringOperators"] | undefined | null,
+	xLoginToken?: ResolverInputTypes["StringOperators"] | undefined | null,
+	xRefreshToken?: ResolverInputTypes["StringOperators"] | undefined | null
 };
 	["CustomerSortParameter"]: {
 	id?: ResolverInputTypes["SortOrder"] | undefined | null,
@@ -4863,7 +4909,9 @@ data generated by the payment provider. */
 	phoneNumber?: ResolverInputTypes["SortOrder"] | undefined | null,
 	emailAddress?: ResolverInputTypes["SortOrder"] | undefined | null,
 	linkedAccounts?: ResolverInputTypes["SortOrder"] | undefined | null,
-	privy_id?: ResolverInputTypes["SortOrder"] | undefined | null
+	privy_id?: ResolverInputTypes["SortOrder"] | undefined | null,
+	xLoginToken?: ResolverInputTypes["SortOrder"] | undefined | null,
+	xRefreshToken?: ResolverInputTypes["SortOrder"] | undefined | null
 };
 	["OrderFilterParameter"]: {
 	id?: ResolverInputTypes["IDOperators"] | undefined | null,
@@ -4982,10 +5030,21 @@ data generated by the payment provider. */
 	["CustomerCustomFields"]: AliasType<{
 	linkedAccounts?:boolean | `@${string}`,
 	privy_id?:boolean | `@${string}`,
+	xLoginToken?:boolean | `@${string}`,
+	xRefreshToken?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["CreateCustomerCustomFieldsInput"]: {
+	xRefreshToken?: string | undefined | null
+};
+	["UpdateCustomerCustomFieldsInput"]: {
+	xRefreshToken?: string | undefined | null
+};
 	["PrivyAuthInput"]: {
 	privyIdToken: string
+};
+	["RegisterCustomerCustomFieldsInput"]: {
+	xRefreshToken?: string | undefined | null
 };
 	["schema"]: AliasType<{
 	query?:ResolverInputTypes["Query"],
@@ -5479,7 +5538,7 @@ by FacetValue ID. Examples:
 	lastName: string,
 	phoneNumber?: string | undefined,
 	emailAddress: string,
-	customFields?: ModelTypes["JSON"] | undefined
+	customFields?: ModelTypes["CreateCustomerCustomFieldsInput"] | undefined
 };
 	["CreateAddressInput"]: {
 	fullName?: string | undefined,
@@ -6459,14 +6518,15 @@ and an unverified user attempts to authenticate. */
 	firstName?: string | undefined,
 	lastName?: string | undefined,
 	phoneNumber?: string | undefined,
-	password?: string | undefined
+	password?: string | undefined,
+	customFields?: ModelTypes["RegisterCustomerCustomFieldsInput"] | undefined
 };
 	["UpdateCustomerInput"]: {
 	title?: string | undefined,
 	firstName?: string | undefined,
 	lastName?: string | undefined,
 	phoneNumber?: string | undefined,
-	customFields?: ModelTypes["JSON"] | undefined
+	customFields?: ModelTypes["UpdateCustomerCustomFieldsInput"] | undefined
 };
 	["UpdateOrderInput"]: {
 	customFields?: ModelTypes["JSON"] | undefined
@@ -6589,7 +6649,9 @@ data generated by the payment provider. */
 	phoneNumber?: ModelTypes["StringOperators"] | undefined,
 	emailAddress?: ModelTypes["StringOperators"] | undefined,
 	linkedAccounts?: ModelTypes["StringOperators"] | undefined,
-	privy_id?: ModelTypes["StringOperators"] | undefined
+	privy_id?: ModelTypes["StringOperators"] | undefined,
+	xLoginToken?: ModelTypes["StringOperators"] | undefined,
+	xRefreshToken?: ModelTypes["StringOperators"] | undefined
 };
 	["CustomerSortParameter"]: {
 	id?: ModelTypes["SortOrder"] | undefined,
@@ -6601,7 +6663,9 @@ data generated by the payment provider. */
 	phoneNumber?: ModelTypes["SortOrder"] | undefined,
 	emailAddress?: ModelTypes["SortOrder"] | undefined,
 	linkedAccounts?: ModelTypes["SortOrder"] | undefined,
-	privy_id?: ModelTypes["SortOrder"] | undefined
+	privy_id?: ModelTypes["SortOrder"] | undefined,
+	xLoginToken?: ModelTypes["SortOrder"] | undefined,
+	xRefreshToken?: ModelTypes["SortOrder"] | undefined
 };
 	["OrderFilterParameter"]: {
 	id?: ModelTypes["IDOperators"] | undefined,
@@ -6719,10 +6783,21 @@ data generated by the payment provider. */
 };
 	["CustomerCustomFields"]: {
 		linkedAccounts?: string | undefined,
-	privy_id?: string | undefined
+	privy_id?: string | undefined,
+	xLoginToken?: string | undefined,
+	xRefreshToken?: string | undefined
+};
+	["CreateCustomerCustomFieldsInput"]: {
+	xRefreshToken?: string | undefined
+};
+	["UpdateCustomerCustomFieldsInput"]: {
+	xRefreshToken?: string | undefined
 };
 	["PrivyAuthInput"]: {
 	privyIdToken: string
+};
+	["RegisterCustomerCustomFieldsInput"]: {
+	xRefreshToken?: string | undefined
 };
 	["schema"]: {
 	query?: ModelTypes["Query"] | undefined,
@@ -7368,7 +7443,7 @@ by FacetValue ID. Examples:
 	lastName: string,
 	phoneNumber?: string | undefined,
 	emailAddress: string,
-	customFields?: GraphQLTypes["JSON"] | undefined
+	customFields?: GraphQLTypes["CreateCustomerCustomFieldsInput"] | undefined
 };
 	["CreateAddressInput"]: {
 		fullName?: string | undefined,
@@ -8527,14 +8602,15 @@ and an unverified user attempts to authenticate. */
 	firstName?: string | undefined,
 	lastName?: string | undefined,
 	phoneNumber?: string | undefined,
-	password?: string | undefined
+	password?: string | undefined,
+	customFields?: GraphQLTypes["RegisterCustomerCustomFieldsInput"] | undefined
 };
 	["UpdateCustomerInput"]: {
 		title?: string | undefined,
 	firstName?: string | undefined,
 	lastName?: string | undefined,
 	phoneNumber?: string | undefined,
-	customFields?: GraphQLTypes["JSON"] | undefined
+	customFields?: GraphQLTypes["UpdateCustomerCustomFieldsInput"] | undefined
 };
 	["UpdateOrderInput"]: {
 		customFields?: GraphQLTypes["JSON"] | undefined
@@ -8741,7 +8817,9 @@ data generated by the payment provider. */
 	phoneNumber?: GraphQLTypes["StringOperators"] | undefined,
 	emailAddress?: GraphQLTypes["StringOperators"] | undefined,
 	linkedAccounts?: GraphQLTypes["StringOperators"] | undefined,
-	privy_id?: GraphQLTypes["StringOperators"] | undefined
+	privy_id?: GraphQLTypes["StringOperators"] | undefined,
+	xLoginToken?: GraphQLTypes["StringOperators"] | undefined,
+	xRefreshToken?: GraphQLTypes["StringOperators"] | undefined
 };
 	["CustomerSortParameter"]: {
 		id?: GraphQLTypes["SortOrder"] | undefined,
@@ -8753,7 +8831,9 @@ data generated by the payment provider. */
 	phoneNumber?: GraphQLTypes["SortOrder"] | undefined,
 	emailAddress?: GraphQLTypes["SortOrder"] | undefined,
 	linkedAccounts?: GraphQLTypes["SortOrder"] | undefined,
-	privy_id?: GraphQLTypes["SortOrder"] | undefined
+	privy_id?: GraphQLTypes["SortOrder"] | undefined,
+	xLoginToken?: GraphQLTypes["SortOrder"] | undefined,
+	xRefreshToken?: GraphQLTypes["SortOrder"] | undefined
 };
 	["OrderFilterParameter"]: {
 		id?: GraphQLTypes["IDOperators"] | undefined,
@@ -8872,10 +8952,21 @@ data generated by the payment provider. */
 	["CustomerCustomFields"]: {
 	__typename: "CustomerCustomFields",
 	linkedAccounts?: string | undefined,
-	privy_id?: string | undefined
+	privy_id?: string | undefined,
+	xLoginToken?: string | undefined,
+	xRefreshToken?: string | undefined
+};
+	["CreateCustomerCustomFieldsInput"]: {
+		xRefreshToken?: string | undefined
+};
+	["UpdateCustomerCustomFieldsInput"]: {
+		xRefreshToken?: string | undefined
 };
 	["PrivyAuthInput"]: {
 		privyIdToken: string
+};
+	["RegisterCustomerCustomFieldsInput"]: {
+		xRefreshToken?: string | undefined
 }
     }
 export const enum AssetType {
@@ -9489,5 +9580,8 @@ type ZEUS_VARIABLES = {
 	["FacetSortParameter"]: ValueTypes["FacetSortParameter"];
 	["ProductFilterParameter"]: ValueTypes["ProductFilterParameter"];
 	["ProductSortParameter"]: ValueTypes["ProductSortParameter"];
+	["CreateCustomerCustomFieldsInput"]: ValueTypes["CreateCustomerCustomFieldsInput"];
+	["UpdateCustomerCustomFieldsInput"]: ValueTypes["UpdateCustomerCustomFieldsInput"];
 	["PrivyAuthInput"]: ValueTypes["PrivyAuthInput"];
+	["RegisterCustomerCustomFieldsInput"]: ValueTypes["RegisterCustomerCustomFieldsInput"];
 }
