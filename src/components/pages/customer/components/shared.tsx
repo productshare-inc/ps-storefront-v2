@@ -10,7 +10,7 @@ export const FormContainer = styled(Stack)`
     align-items: center;
 
     @media (max-width: ${({ theme }) => theme.breakpoints.lg}) {
-        min-height: 60vh;
+        min-height: 80vh;
     }
 `;
 

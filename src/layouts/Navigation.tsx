@@ -6,7 +6,10 @@ import { Stack } from '@/src/components/atoms/Stack';
 import styled from '@emotion/styled';
 import { Link } from '@/src/components/atoms/Link';
 import { useCart } from '@/src/state/cart';
-
+import { usePrivy } from "@privy-io/react-auth";
+import { UserPill } from "@privy-io/react-auth/ui";
+//import Link from "next/link";
+import { Button } from "@/components/ui/button";
 // import { Cart } from '@/src/layouts/Cart';
 // import { LanguageSwitcher } from '@/src/components';
 
@@ -37,6 +40,7 @@ interface NavigationProps {
 }
 
 export const Navigation: React.FC<NavigationProps> = ({ navigation, categories, changeModal }) => {
+    const { ready, authenticated } = usePrivy();
     const { t } = useTranslation();
     const { isLogged, cart } = useCart();
     const navigationSearch = useNavigationSearch();
@@ -74,7 +78,9 @@ export const Navigation: React.FC<NavigationProps> = ({ navigation, categories, 
 
     return (
         <>
-            {process.env.NEXT_PUBLIC_SHOW_TOP == "true" ? <AnnouncementBar entries={entries} secondsBetween={5} /> : null}
+            {process.env.NEXT_PUBLIC_SHOW_TOP == 'true' ? (
+                <AnnouncementBar entries={entries} secondsBetween={5} />
+            ) : null}
             <StickyContainer>
                 <ContentContainer>
                     <Stack itemsCenter justifyBetween gap="5rem" w100>
@@ -106,7 +112,15 @@ export const Navigation: React.FC<NavigationProps> = ({ navigation, categories, 
                                 <SearchIcon />
                             </IconButton>
                             <Picker changeModal={changeModal} />
-                            <UserMenu isLogged={isLogged} />
+                            <div className="flex items-center gap-4">
+                                {ready && authenticated ? (
+                                    <UserPill  />
+                                ) : (
+                                    <Link href="/customer/login" passHref>
+                                        <Button variant="outline">Sign In</Button>
+                                    </Link>
+                                )}
+                            </div>
                             <CartDrawer activeOrder={cart} />
                         </Stack>
                     </Stack>

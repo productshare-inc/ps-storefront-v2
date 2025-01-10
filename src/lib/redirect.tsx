@@ -97,8 +97,8 @@ export const usePush = () => {
 export const prepareSSRRedirect = (where: string) => (ctx: GetServerSidePropsContext) => {
     const channel = ctx.params?.channel ? `/${ctx.params.channel}` : '';
     const locale = ctx.params?.locale ? `/${ctx.params.locale}` : '';
-
     const destination = `${channel}${locale}${where}`;
+    console.log('Redirecting to:', destination);
     return { redirect: { destination, permanent: false } };
 };
 

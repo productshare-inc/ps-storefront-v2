@@ -17,6 +17,7 @@
         "paths": {
             "@/*": ["./*"],
             "@/components/*": ["./src/components/*"],
+            "@/services/*": ["./src/services/*"],
             "public": ["/*"]
         },
         "incremental": true

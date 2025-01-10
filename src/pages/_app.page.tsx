@@ -10,60 +10,65 @@ import { CartProvider } from '@/src/state/cart';
 import { CheckoutProvider } from '@/src/state/checkout';
 import { ProductProvider } from '@/src/state/product';
 import { CollectionProvider } from '@/src/state/collection';
-import { ChannelsProvider } from '../state/channels';
-import { PrivyProvider } from '@privy-io/react-auth';
-import "@/globals.css";
+import { ChannelsProvider, useChannels } from '../state/channels';
+import { PrivyProvider, useLogout } from '@privy-io/react-auth';
+import { AuthLayout } from '@/components/auth/AuthLayout';
+import '@/globals.css';
+import { storefrontApiMutation } from '@/src/graphql/client';
+import { useRouter } from 'next/router';
+import { useToast } from '@/hooks/use-toast';
+import { useTranslation } from 'react-i18next';
+import { Toaster } from '@/components/ui/toaster';
 const nunito = Nunito_Sans({ subsets: ['latin'], variable: '--nunito-font' });
 
 const App = ({ Component, pageProps }: AppProps) => {
-
     return (
         <ThemeProvider theme={LightTheme}>
             <PrivyProvider
                 appId="cm2imp7wd01oy6v9bm2dqhzms"
                 config={{
-                appearance: {
-                    theme: 'light',
-                    accentColor: '#676FFF',
-                },
-                loginMethods: ["twitter", "wallet", "farcaster", "email" ],
-                embeddedWallets: {
-                    createOnLogin: 'users-without-wallets',
-                },
-                }}
-            >
+                    appearance: {
+                        theme: 'light',
+                        accentColor: '#676FFF',
+                    },
+                    loginMethods: ['twitter', 'wallet', 'farcaster', 'email'],
+                    embeddedWallets: {
+                        createOnLogin: 'users-without-wallets',
+                    },
+                }}>
                 <ChannelsProvider initialState={{ channel: pageProps.channel, locale: pageProps.locale }}>
-                    <Global styles={`body { font-family:${nunito.style.fontFamily}; }`} />
-                    {/* `checkout` prop should exist only on routes with checkout functionally */}
-                    {'checkout' in pageProps ? (
-                        <CheckoutProvider initialState={{ checkout: pageProps.checkout }}>
-                            <Component {...pageProps} />
-                        </CheckoutProvider>
-                    ) : (
-                        <CartProvider>
-                            <ProductProvider
-                                initialState={{
-                                    product: 'product' in pageProps ? pageProps.product : undefined,
-                                }}>
-                                <CollectionProvider
+                        <Global styles={`body { font-family:${nunito.style.fontFamily}; }`} />
+                        {/* `checkout` prop should exist only on routes with checkout functionally */}
+                        {'checkout' in pageProps ? (
+                            <CheckoutProvider initialState={{ checkout: pageProps.checkout }}>
+                                <Component {...pageProps} />
+                            </CheckoutProvider>
+                        ) : (
+                            <CartProvider>
+                                <ProductProvider
                                     initialState={{
-                                        collection: 'collection' in pageProps ? pageProps.collection : undefined,
-                                        products: 'products' in pageProps ? pageProps.products : undefined,
-                                        facets: 'facets' in pageProps ? pageProps.facets : undefined,
-                                        totalProducts: 'totalProducts' in pageProps ? pageProps.totalProducts : undefined,
-                                        filters: 'filters' in pageProps ? pageProps.filters : undefined,
-                                        searchQuery: 'searchQuery' in pageProps ? pageProps.searchQuery : undefined,
-                                        page: 'page' in pageProps ? pageProps.page : undefined,
-                                        sort: 'sort' in pageProps ? pageProps.sort : undefined,
+                                        product: 'product' in pageProps ? pageProps.product : undefined,
                                     }}>
-                                    <Component {...pageProps} />
-                                </CollectionProvider>
-                            </ProductProvider>
-                        </CartProvider>
-                    )}
+                                    <CollectionProvider
+                                        initialState={{
+                                            collection: 'collection' in pageProps ? pageProps.collection : undefined,
+                                            products: 'products' in pageProps ? pageProps.products : undefined,
+                                            facets: 'facets' in pageProps ? pageProps.facets : undefined,
+                                            totalProducts:
+                                                'totalProducts' in pageProps ? pageProps.totalProducts : undefined,
+                                            filters: 'filters' in pageProps ? pageProps.filters : undefined,
+                                            searchQuery: 'searchQuery' in pageProps ? pageProps.searchQuery : undefined,
+                                            page: 'page' in pageProps ? pageProps.page : undefined,
+                                            sort: 'sort' in pageProps ? pageProps.sort : undefined,
+                                        }}>
+                                        <Component {...pageProps} />
+                                    </CollectionProvider>
+                                </ProductProvider>
+                            </CartProvider>
+                        )}
+                    <Toaster />
                 </ChannelsProvider>
             </PrivyProvider>
-
         </ThemeProvider>
     );
 };

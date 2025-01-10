@@ -10,7 +10,7 @@
     "scripts": {
         "dev": "next dev -p 3001",
         "build": "next build",
-        "start": "next start",
+        "start": "next start -p 3001",
         "zeus": "zeus http://localhost:3000/shop-api ./src --td",
         "zeus-production": "zeus https://staging.productshare.net/shop-api ./src --td",
         "toc": "i18next-resources-for-ts toc -i ./public/locales/en -o ./src/@types/resources.ts",
@@ -45,6 +45,7 @@
         "next": "^14.0.3",
         "next-i18next": "^15.0.0",
         "next-language-detector": "^1.1.0",
+        "pg": "^8.13.1",
         "photoswipe": "^5.4.3",
         "react": "^18.2.0",
         "react-dom": "^18.2.0",
@@ -61,6 +62,7 @@
     "devDependencies": {
         "@types/accept-language-parser": "^1.5.6",
         "@types/node": "^20.10.2",
+        "@types/pg": "^8.11.10",
         "@types/prettier": "^2.7.3",
         "@types/react": "^18.2.41",
         "@typescript-eslint/eslint-plugin": "^6.13.1",
