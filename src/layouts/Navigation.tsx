@@ -6,10 +6,10 @@ import { Stack } from '@/src/components/atoms/Stack';
 import styled from '@emotion/styled';
 import { Link } from '@/src/components/atoms/Link';
 import { useCart } from '@/src/state/cart';
-import { usePrivy } from "@privy-io/react-auth";
-import { UserPill } from "@privy-io/react-auth/ui";
+import { useToast } from '@/hooks/use-toast';
+import { usePush } from '@/src/lib/redirect';
 //import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button';
 // import { Cart } from '@/src/layouts/Cart';
 // import { LanguageSwitcher } from '@/src/components';
 
@@ -24,10 +24,13 @@ import { CategoryBar } from './CategoryBar';
 import { NavigationSearch } from '@/src/components/organisms/NavgationSearch';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useNavigationSearch } from '@/src/components/organisms/NavgationSearch/hooks';
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { Picker } from '@/src/components/organisms/Picker';
 import { useTranslation } from 'next-i18next';
-
+import { useLogout, usePrivy } from '@privy-io/react-auth';
+import { UserPill } from '@privy-io/react-auth/ui';
+import { storefrontApiMutation } from '@/src/graphql/client';
+import { useChannels } from '@/src/state/channels';
 interface NavigationProps {
     navigation: RootNode<NavigationType> | null;
     categories: CollectionTileType[];
@@ -40,7 +43,10 @@ interface NavigationProps {
 }
 
 export const Navigation: React.FC<NavigationProps> = ({ navigation, categories, changeModal }) => {
-    const { ready, authenticated } = usePrivy();
+    const ctx = useChannels();
+    const { toast } = useToast();
+    const push = usePush();
+    const { ready, authenticated, user, logout: logoutPrivy } = usePrivy();
     const { t } = useTranslation();
     const { isLogged, cart } = useCart();
     const navigationSearch = useNavigationSearch();
@@ -61,6 +67,29 @@ export const Navigation: React.FC<NavigationProps> = ({ navigation, categories, 
         }
     };
 
+    const vendureLogoutFromNav = useCallback(async () => {
+        console.log('Logging out user:', user);
+        await storefrontApiMutation(ctx)({ logout: { success: true } });
+        toast({
+            title: 'Logged out',
+            description: 'You have been successfully logged out.',
+            variant: 'default',
+        });
+    }, [ctx, toast]);
+    const onSuccessLogout = async () => {
+        console.log('User logging out:', user);
+        await vendureLogoutFromNav();
+        push('/customer/login');
+    };
+
+    useLogout({ onSuccess: onSuccessLogout });
+    const handleLogout = async () => {
+        try {
+            await logoutPrivy();
+        } catch (error) {
+            console.error('Logout error:', error);
+        }
+    };
     useEffect(() => {
         document.addEventListener('click', handleOutsideClick);
         return () => {
@@ -114,7 +143,12 @@ export const Navigation: React.FC<NavigationProps> = ({ navigation, categories, 
                             <Picker changeModal={changeModal} />
                             <div className="flex items-center gap-4">
                                 {ready && authenticated ? (
-                                    <UserPill  />
+                                    <>
+                                        <UserPill />
+                                        <Button variant="outline" onClick={handleLogout}>
+                                            Logout
+                                        </Button>
+                                    </>
                                 ) : (
                                     <Link href="/customer/login" passHref>
                                         <Button variant="outline">Sign In</Button>

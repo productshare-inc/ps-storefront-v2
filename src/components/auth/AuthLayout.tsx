@@ -41,13 +41,11 @@ export function AuthLayout({ children }: AuthLayoutProps) {
         });
     }, [ctx, toast]);
 
-    const onSuccess = useCallback(async () => {
+    const onSuccess = async () => {
         console.log('User logging out:', user);
         await vendureLogout();
         push('/customer/login');
-    }, [user, vendureLogout, push]);
-
-    useLogout({ onSuccess });
+    };
 
     const checkAndTriggerEmailLink = useCallback(async () => {
         if (!user?.email?.address && !hasTriggeredEmailLink.current) {
@@ -173,7 +171,8 @@ export function AuthLayout({ children }: AuthLayoutProps) {
 
     useEffect(() => {
         let isMounted = true;
-
+        console.log('running useEffect in Authlayout');
+        const { logout } = useLogout({ onSuccess });
         const initialize = async () => {
             if (ready && authenticated && user && isMounted) {
                 await createOrFetchUser();

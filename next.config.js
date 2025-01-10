@@ -8,6 +8,7 @@ const nextConfig = {
     pageExtensions: ['page.tsx', 'page.ts', 'ts', 'tsx'],
     swcMinify: true,
     reactStrictMode: false,
+    i18n,
     async headers() {
         const headers = [
             {

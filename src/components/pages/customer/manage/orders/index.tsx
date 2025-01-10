@@ -20,6 +20,7 @@ import { useChannels } from '@/src/state/channels';
 const GET_MORE = 4;
 
 export const HistoryPage: React.FC<InferGetServerSidePropsType<typeof getServerSideProps>> = props => {
+    const requiresAuth = true;
     const ctx = useChannels();
     const { t } = useTranslation('customer');
     const [query, setQuery] = useState('');

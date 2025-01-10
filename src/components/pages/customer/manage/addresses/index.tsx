@@ -18,6 +18,7 @@ import { useOutsideClick } from '@/src/util/hooks/useOutsideClick';
 
 export const AddressesPage: React.FC<InferGetServerSidePropsType<typeof getServerSideProps>> = props => {
     const { t } = useTranslation('customer');
+    const requiresAuth = true;
     const ctx = useChannels();
     const { activeCustomer, addressToEdit, deleting, onDelete, onEdit, onModalClose, onSubmitCreate, onSubmitEdit } =
         useAddresses(props.activeCustomer, ctx);

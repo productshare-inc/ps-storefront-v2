@@ -10,6 +10,7 @@ import { getServerSideProps } from './props';
 import { Stack } from '@/src/components/atoms';
 
 export const ManageAccountPage: React.FC<InferGetServerSidePropsType<typeof getServerSideProps>> = props => {
+    const requiresAuth = true;
     const { t } = useTranslation('customer');
     return (
         <Layout categories={props.collections} navigation={props.navigation} pageTitle={t('accountPage.title')}>

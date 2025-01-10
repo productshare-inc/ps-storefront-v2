@@ -14,13 +14,11 @@ module.exports = {
     i18n: {
         defaultLocale: 'en',
         locales: ['en', 'fr'],
-        returnObjects: true,
-        fallbackLng: 'en',
     },
     localePath: typeof window === 'undefined' ? require('path').resolve('./public/locales') : '/locales',
-
+    returnObjects: true,
+    fallbackLng: 'en',
     /** To avoid issues when deploying to some paas (vercel...) */
-
 
     reloadOnPrerender: process.env.NODE_ENV === 'development',
 };
