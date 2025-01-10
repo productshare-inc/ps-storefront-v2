@@ -1,16 +1,16 @@
 {
-    "name": "vendure-nextjs-storefront",
+    "name": "productshare-nextjs-storefront",
     "version": "0.0.1",
     "private": true,
     "author": {
-        "email": "aexol@aexol.com",
-        "name": "aexol",
+        "email": "admin@aexol.com",
+        "name": "ProductShare",
         "url": "https://aexol.com"
     },
     "scripts": {
         "dev": "next dev -p 3001",
         "build": "next build",
-        "start": "next start -p 3001",
+        "start": "next start",
         "zeus": "zeus http://localhost:3000/shop-api ./src --td",
         "zeus-production": "zeus https://staging.productshare.net/shop-api ./src --td",
         "toc": "i18next-resources-for-ts toc -i ./public/locales/en -o ./src/@types/resources.ts",
